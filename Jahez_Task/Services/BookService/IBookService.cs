@@ -1,6 +1,7 @@
 ﻿using Jahez_Task.DTOs.BookForAdmin;
 using Jahez_Task.DTOs.BookForMember;
 using Jahez_Task.DTOs.BookLoan;
+using Jahez_Task.Models;
 
 namespace Jahez_Task.Services.BookService
 {
@@ -13,17 +14,17 @@ namespace Jahez_Task.Services.BookService
 
         public void AddBook(DIsplayBook book);
 
-        public void UpdateBook( DIsplayBook book);
+        public Task UpdateBook( DIsplayBook book, int BookId);
 
-        public Task DeleteBook( int Id);
+        public Task<string> DeleteBook( int Id);
 
         public Task<List<DisplayBook>> GetAvailableBooks();
 
-        public void BorrowBook(int UserId , DisplayBook Book);
+        public Task<(BookLoan Loan, string Message)> BorrowBook(int UserId , DisplayBook Book);
 
-        public Task ReturnBook (int UserId, DisplayBook Book);
+        public Task<(BookLoan Loan, string Message)> ReturnBook (int UserId, DisplayBook Book);
 
-        public void AddBookLoan(int UserId , AddBookLoanDTO BookLoan); 
+        public Task<BookLoan> AddBookLoan(int UserId , AddBookLoanDTO BookLoan); 
 
     }
 }

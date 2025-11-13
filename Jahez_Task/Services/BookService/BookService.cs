@@ -3,10 +3,11 @@ using Jahez_Task.DTOs.BookForAdmin;
 using Jahez_Task.DTOs.BookForMember;
 using Jahez_Task.DTOs.BookLoan;
 using Jahez_Task.Enums;
+using Jahez_Task.Enums;
 using Jahez_Task.Models;
 using Jahez_Task.UnitOfWork;
-using Jahez_Task.Enums;
 using Microsoft.AspNetCore.Identity.UI.Services;
+using System.Threading.Tasks;
 
 namespace Jahez_Task.Services.BookService
 {
@@ -85,26 +86,38 @@ namespace Jahez_Task.Services.BookService
 
         }
 
-        public void UpdateBook(DIsplayBook book)
+        public async Task UpdateBook(DIsplayBook book , int BookId)
         {
-            if (book != null)
+            var existing = await unitOfWork.BookRepository.GetByIdAsync(BookId);
+
+            if (book != null && existing!= null)
             {
                 Book Book = mapper.Map<Book>(book);
+                Book.Id = BookId;
                 unitOfWork.BookRepository.Update(Book);
-                unitOfWork.Save();
+                await unitOfWork.SaveAsync();
 
             }
 
         }
 
-        public async Task DeleteBook(int Id)
+        public async Task<string> DeleteBook(int Id)
         {
+            string Message = "";
             if (await unitOfWork.BookRepository.IsExist(Id))
             {
                 unitOfWork.BookRepository.Delete(Id);
-                unitOfWork.SaveAsync();
+                unitOfWork.Save();
+                Message = "Book Deleted Successfully";
+                return Message;
+            }else
+            {
+                Message = "Book Not Found";
+                return Message;
 
             }
+
+
         }
 
         public async Task<List<DisplayBook>> GetAvailableBooks()
@@ -123,19 +136,19 @@ namespace Jahez_Task.Services.BookService
             return _AllBooks;
         }
 
-        public void BorrowBook(int UserId , DisplayBook book)
+        public async Task<(BookLoan Loan, string Message)> BorrowBook(int UserId , DisplayBook book)
         {
 
             bool CanBorrow = unitOfWork.BookLoanRepository.CanBorrow(UserId);
 
-            if (book != null && CanBorrow == true) { 
+            if (book != null && CanBorrow) { 
                 
                 Book BorrowedBook = unitOfWork.BookRepository.GetBookByTitle(book.Title);
                 if (BorrowedBook.IsAvailable == true) {
 
                     BorrowedBook.IsAvailable = false;
                     unitOfWork.BookRepository.Update(BorrowedBook);
-                    unitOfWork.Save();
+                    
                     AddBookLoanDTO BookLOanRecord = new AddBookLoanDTO()
                     {
                         UserId = UserId,
@@ -147,22 +160,33 @@ namespace Jahez_Task.Services.BookService
 
                     };
 
-                    AddBookLoan(UserId, BookLOanRecord);
+                   BookLoan Loan = await AddBookLoan(UserId, BookLOanRecord);
+                   return (Loan , "Book has been borrowed successfully.");
+
+
+                }else
+                {
+                    return (null, "Cannot borrow the book , the book is not available.");
+
                 }
- 
-            
+
+
+
             }
+
+                return (null , "Cannot borrow the book. You  have reached the borrowing limit ");
 
         }
 
-        public void AddBookLoan(int UserId, AddBookLoanDTO BookLoan)
+        public async Task<BookLoan> AddBookLoan(int UserId, AddBookLoanDTO BookLoan)
         {
             BookLoan BookLoanRecord = mapper.Map<BookLoan>(BookLoan);
             unitOfWork.BookLoanRepository.Add(BookLoanRecord);
-            unitOfWork.Save();
+            await unitOfWork.SaveAsync();
+            return BookLoanRecord;
         }
 
-        public async Task ReturnBook(int UserId , DisplayBook Book)
+        public async Task<(BookLoan Loan, string Message)> ReturnBook(int UserId , DisplayBook Book)
         {
             if (Book != null)
             {
@@ -172,13 +196,24 @@ namespace Jahez_Task.Services.BookService
                 unitOfWork.Save();
 
                 BookLoan ReturnedBookLoanRecord = unitOfWork.BookLoanRepository.GetBookLoanRecord(UserId, ReturnedBook.Id);
-                ReturnedBookLoanRecord.Status = (int)LoanStatus.Returned;
-                ReturnedBookLoanRecord.ReturnDate = DateTime.Now;
-                unitOfWork.BookLoanRepository.Update(ReturnedBookLoanRecord);
-                unitOfWork.SaveAsync();
+                if (ReturnedBookLoanRecord.Status != (int)LoanStatus.Returned)
+                {
+                    ReturnedBookLoanRecord.Status = (int)LoanStatus.Returned;
+                    ReturnedBookLoanRecord.ReturnDate = DateTime.Now;
+                    unitOfWork.BookLoanRepository.Update(ReturnedBookLoanRecord);
+                    await unitOfWork.SaveAsync();
+                    return (ReturnedBookLoanRecord, "Book has been Returned successfully.");
+                }
+                else
+                {
+                    return (null, "This book has already been returned.");
+                }
+               
 
             }
-            
+
+               return (null, "Invalid book data.");
+
         }
     }
 }

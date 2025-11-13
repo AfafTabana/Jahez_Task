@@ -1,5 +1,6 @@
 ﻿using Jahez_Task.Models;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace Jahez_Task.Repository.GenericRepo
 {
@@ -39,19 +40,29 @@ namespace Jahez_Task.Repository.GenericRepo
 
         public void Update(T entity) {
 
-            dbContext.Entry(entity).State = EntityState.Modified;
-        
+            var key = dbContext.Entry(entity).Property("Id").CurrentValue;
+            var existing = dbContext.Set<T>().Find(key);
+
+            if (existing == null)
+            {
+                throw new KeyNotFoundException($"Entity of type {typeof(T).Name} with ID {key} not found.");
+            }
+
+            dbContext.Entry(existing).CurrentValues.SetValues(entity);
+
         }
 
-        public virtual void Delete(int id) { 
+        public void Delete(int id) { 
             var entity = dbContext.Set<T>().Find(id);
 
             if (entity != null)
             {
                 dbContext.Set<T>().Remove(entity);
+
             }
-        
-        
+
+            
+
         }
 
         public async Task<bool> IsExist(int id) {

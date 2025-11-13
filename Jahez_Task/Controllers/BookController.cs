@@ -1,5 +1,6 @@
 ﻿using Jahez_Task.DTOs.BookForAdmin;
 using Jahez_Task.DTOs.BookForMember;
+using Jahez_Task.Models;
 using Jahez_Task.Services.BookService;
 using Jahez_Task.UnitOfWork;
 using Microsoft.AspNetCore.Authorization;
@@ -18,14 +19,14 @@ namespace Jahez_Task.Controllers
         {
             this.bookService = bookService;
         }
-        [Authorize(Roles = "member")]
+        //[Authorize(Roles = "member")]
         [HttpGet("DisplayBooksForMembers")]
         public async Task<IActionResult> GetAllForMembers() {
 
             IEnumerable<DisplayBook> Books = await bookService.GetAll();
             return Ok(Books);        
         }
-        [Authorize(Roles = "admin")]
+        //[Authorize(Roles = "admin")]
         [HttpGet("DisplayBooksForAdmin")]
 
         public async Task<IActionResult> GetAllForAdmin()
@@ -35,7 +36,7 @@ namespace Jahez_Task.Controllers
 
 
         }
-        [Authorize(Roles = "admin")]
+        //[Authorize(Roles = "admin")]
         [HttpGet("GetById/{Id}")]
         public async Task<IActionResult> GetById(int Id )
         {
@@ -43,7 +44,7 @@ namespace Jahez_Task.Controllers
             return Ok(Book);
 
         }
-        [Authorize(Roles = "admin")]
+        //[Authorize(Roles = "admin")]
         [HttpPost("AddBook")]
 
         public IActionResult AddBook(DIsplayBook book)
@@ -51,41 +52,43 @@ namespace Jahez_Task.Controllers
             bookService.AddBook(book);
             return Ok("Book Added Succesfully");
         }
-        [Authorize(Roles = "admin")]
+        //[Authorize(Roles = "admin")]
         [HttpPut("UpdateBook")]
 
-        public IActionResult UpdateBook(DIsplayBook book)
+        public async Task<IActionResult> UpdateBook(DIsplayBook book , int BookId)
         {
-            bookService.UpdateBook(book);
+            await bookService.UpdateBook(book , BookId);
             return Ok("Book Updated Succesfully");
         }
-        [Authorize(Roles = "admin")]
-        [HttpDelete("DeleteBook")]
+        //[Authorize(Roles = "admin")]
+        [HttpDelete("DeleteBook/{Id}")]
 
         public async Task<IActionResult> DeleteBook(int Id)
         {
-            await bookService.DeleteBook(Id);
-            return Ok("Book Deleted Successfully");
+            string Message = await bookService.DeleteBook(Id);
+            return Ok(Message);
         }
-        [Authorize(Roles = "member")]
+        //[Authorize(Roles = "member")]
         [HttpGet("GetAvailableBook")]
         public async Task<IActionResult> GetAvailableBooks()
         {
            List<DisplayBook> AllAvailableBooks = await bookService.GetAvailableBooks();
             return Ok(AllAvailableBooks);
         }
-        [Authorize(Roles = "member")]
+        //[Authorize(Roles = "member")]
         [HttpPost("BorrowBook")]
 
-        public IActionResult BorrowBook(int UserId, [FromBody]DisplayBook book) {
+        public async  Task<IActionResult> BorrowBook(int UserId, [FromBody]DisplayBook book) {
 
             if (book == null)
                 return BadRequest("Book data is required.");
 
             try
             {
-                bookService.BorrowBook(UserId, book);
-                return Ok("Book has been borrowed successfully.");
+               var (Loan , message) = await bookService.BorrowBook(UserId, book);
+                if (Loan == null)
+                return BadRequest(message);
+                return Ok(message);
             }
             catch (Exception ex)
             {
@@ -93,7 +96,7 @@ namespace Jahez_Task.Controllers
             }
 
         }
-        [Authorize(Roles = "member")]
+        //[Authorize(Roles = "member")]
         [HttpPost("ReturnBook")]
 
         public async Task<IActionResult> ReturnBook(int UserId , DisplayBook book)
@@ -103,8 +106,10 @@ namespace Jahez_Task.Controllers
 
             try
             {
-               await bookService.ReturnBook(UserId, book);
-                return Ok("Book has been Returned successfully.");
+               var (loan , message )=await bookService.ReturnBook(UserId, book);
+               if (loan == null)
+                    return BadRequest(message);
+                return Ok(message);
             }
             catch (Exception ex)
             {

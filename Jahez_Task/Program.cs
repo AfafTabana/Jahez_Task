@@ -1,12 +1,15 @@
 
+using Hangfire;
 using Jahez_Task.Mapper.AccountMapping;
 using Jahez_Task.Mapper.BookLoanMapping;
 using Jahez_Task.Mapper.BookMapping;
 using Jahez_Task.Models;
 using Jahez_Task.Repository.BookLoanRepo;
 using Jahez_Task.Repository.BookRepo;
+using Jahez_Task.Repository.NotificationRepo;
 using Jahez_Task.Services.AccountService;
 using Jahez_Task.Services.BookService;
+using Jahez_Task.Services.NotificationService;
 using Jahez_Task.UnitOfWork;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -31,6 +34,8 @@ namespace Jahez_Task
             builder.Services.AddScoped<IBookLoanRepository , BookLoanRepository>();
             builder.Services.AddScoped<IBookService, BookService>();
             builder.Services.AddScoped<IAccountService, AccountService>();
+            builder.Services.AddScoped<INotificationReminderService, NotificationReminderService>();    
+            builder.Services.AddScoped<INotificationRepository , NotificationRepository>();
             //AutoMapper registration 
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -73,6 +78,13 @@ namespace Jahez_Task
             // Register the UnitOfWork service
             builder.Services.AddScoped<unitOfWork>();
 
+            // Configure Hangfire with SQL Server storage
+            builder.Services.AddHangfire(config =>
+                config.UseSqlServerStorage(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+            // Add Hangfire background server
+            builder.Services.AddHangfireServer();
+
 
             // Add services to the container.
 
@@ -81,6 +93,18 @@ namespace Jahez_Task
             builder.Services.AddOpenApi();
 
             var app = builder.Build();
+
+            // Enable Hangfire Dashboard for monitoring jobs
+            app.UseHangfireDashboard("/hangfire");
+
+            // Schedule recurring background job
+            RecurringJob.AddOrUpdate<INotificationReminderService>(
+                recurringJobId: "daily-delayed-books-check",
+                methodCall: service => service.CheckDelayedBooks(),
+                cronExpression: Cron.Daily, 
+                timeZone: TimeZoneInfo.Local
+            );
+
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
