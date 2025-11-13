@@ -2,6 +2,7 @@
 using Jahez_Task.DTOs.BookForMember;
 using Jahez_Task.Services.BookService;
 using Jahez_Task.UnitOfWork;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -17,14 +18,14 @@ namespace Jahez_Task.Controllers
         {
             this.bookService = bookService;
         }
-
+        [Authorize(Roles = "member")]
         [HttpGet("DisplayBooksForMembers")]
         public async Task<IActionResult> GetAllForMembers() {
 
             IEnumerable<DisplayBook> Books = await bookService.GetAll();
             return Ok(Books);        
         }
-
+        [Authorize(Roles = "admin")]
         [HttpGet("DisplayBooksForAdmin")]
 
         public async Task<IActionResult> GetAllForAdmin()
@@ -34,7 +35,7 @@ namespace Jahez_Task.Controllers
 
 
         }
-
+        [Authorize(Roles = "admin")]
         [HttpGet("GetById/{Id}")]
         public async Task<IActionResult> GetById(int Id )
         {
@@ -42,7 +43,7 @@ namespace Jahez_Task.Controllers
             return Ok(Book);
 
         }
-
+        [Authorize(Roles = "admin")]
         [HttpPost("AddBook")]
 
         public IActionResult AddBook(DIsplayBook book)
@@ -50,7 +51,7 @@ namespace Jahez_Task.Controllers
             bookService.AddBook(book);
             return Ok("Book Added Succesfully");
         }
-
+        [Authorize(Roles = "admin")]
         [HttpPut("UpdateBook")]
 
         public IActionResult UpdateBook(DIsplayBook book)
@@ -58,7 +59,7 @@ namespace Jahez_Task.Controllers
             bookService.UpdateBook(book);
             return Ok("Book Updated Succesfully");
         }
-
+        [Authorize(Roles = "admin")]
         [HttpDelete("DeleteBook")]
 
         public async Task<IActionResult> DeleteBook(int Id)
@@ -66,14 +67,14 @@ namespace Jahez_Task.Controllers
             await bookService.DeleteBook(Id);
             return Ok("Book Deleted Successfully");
         }
-
+        [Authorize(Roles = "member")]
         [HttpGet("GetAvailableBook")]
         public async Task<IActionResult> GetAvailableBooks()
         {
            List<DisplayBook> AllAvailableBooks = await bookService.GetAvailableBooks();
             return Ok(AllAvailableBooks);
         }
-
+        [Authorize(Roles = "member")]
         [HttpPost("BorrowBook")]
 
         public IActionResult BorrowBook(int UserId, [FromBody]DisplayBook book) {
@@ -92,7 +93,7 @@ namespace Jahez_Task.Controllers
             }
 
         }
-
+        [Authorize(Roles = "member")]
         [HttpPost("ReturnBook")]
 
         public async Task<IActionResult> ReturnBook(int UserId , DisplayBook book)
