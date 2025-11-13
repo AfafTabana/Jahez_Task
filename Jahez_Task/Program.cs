@@ -1,9 +1,11 @@
 
+using Jahez_Task.Mapper.AccountMapping;
 using Jahez_Task.Mapper.BookLoanMapping;
 using Jahez_Task.Mapper.BookMapping;
 using Jahez_Task.Models;
 using Jahez_Task.Repository.BookLoanRepo;
 using Jahez_Task.Repository.BookRepo;
+using Jahez_Task.Services.AccountService;
 using Jahez_Task.Services.BookService;
 using Jahez_Task.UnitOfWork;
 using Microsoft.AspNetCore.Identity;
@@ -28,10 +30,13 @@ namespace Jahez_Task
             builder.Services.AddScoped<IBookService  , BookService>();
             builder.Services.AddScoped<IBookLoanRepository , BookLoanRepository>();
             builder.Services.AddScoped<IBookService, BookService>();
+            builder.Services.AddScoped<IAccountService, AccountService>();
             //AutoMapper registration 
-           
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
             builder.Services.AddAutoMapper(typeof(BookMapper));
             builder.Services.AddAutoMapper(typeof(BookLoanMapper));
+            builder.Services.AddAutoMapper(typeof(AccountMapper));
             // Configure Identity
             builder.Services.AddIdentity<ApplicationUser, IdentityRole<int>>(
                options =>
