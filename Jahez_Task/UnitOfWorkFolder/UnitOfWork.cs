@@ -2,18 +2,19 @@
 using Jahez_Task.Repository.BookLoanRepo;
 using Jahez_Task.Repository.BookRepo;
 using Jahez_Task.Repository.NotificationRepo;
+using Jahez_Task.UnitOfWorkFolder;
 
 namespace Jahez_Task.UnitOfWork
 {
-    public class unitOfWork
+    public class unitOfWork : IUnitOfWork
     {
-        public readonly AppDbContext Context;
+        private readonly AppDbContext Context;
 
-        public IBookRepository _BookRepository;
+        private IBookRepository _BookRepository;
 
-        public IBookLoanRepository _BookLoanRepository;
+        private IBookLoanRepository _BookLoanRepository;
 
-        public INotificationRepository notificationRepository;
+        private INotificationRepository notificationRepository;
 
         public unitOfWork( AppDbContext _context ) {
 

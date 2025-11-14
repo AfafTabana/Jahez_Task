@@ -1,17 +1,18 @@
 ﻿using Jahez_Task.Enums;
 using Jahez_Task.Models;
 using Jahez_Task.UnitOfWork;
+using Jahez_Task.UnitOfWorkFolder;
 
 namespace Jahez_Task.Services.NotificationService
 {
     public class NotificationReminderService : INotificationReminderService
     {
-        private readonly unitOfWork UnitOfWork;
+        private readonly IUnitOfWork UnitOfWork;
 
         private readonly ILogger<NotificationReminderService> Logger;
 
 
-        public NotificationReminderService(unitOfWork unitOfWork , ILogger<NotificationReminderService> _logger)
+        public NotificationReminderService(IUnitOfWork unitOfWork , ILogger<NotificationReminderService> _logger)
         {
             UnitOfWork = unitOfWork;
             Logger = _logger;
@@ -53,7 +54,7 @@ namespace Jahez_Task.Services.NotificationService
                 SentAt = DateTime.Now
 
           };
-            UnitOfWork.notificationRepository.Add(notification);
+            UnitOfWork.NotificationRepository.Add(notification);
             UnitOfWork.Save();
         }
 

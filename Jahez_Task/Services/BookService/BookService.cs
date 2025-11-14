@@ -6,6 +6,7 @@ using Jahez_Task.Enums;
 using Jahez_Task.Enums;
 using Jahez_Task.Models;
 using Jahez_Task.UnitOfWork;
+using Jahez_Task.UnitOfWorkFolder;
 using Microsoft.AspNetCore.Identity.UI.Services;
 using System.Threading.Tasks;
 
@@ -13,11 +14,11 @@ namespace Jahez_Task.Services.BookService
 {
     public class BookService : IBookService
     {
-        private readonly unitOfWork unitOfWork;
+        private readonly IUnitOfWork unitOfWork;
 
         private readonly IMapper mapper;
 
-        public BookService(unitOfWork unitOfWork, IMapper mapper)
+        public BookService(IUnitOfWork unitOfWork, IMapper mapper)
         {
             this.unitOfWork = unitOfWork;
             this.mapper = mapper;

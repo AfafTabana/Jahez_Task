@@ -2,6 +2,7 @@
 using Jahez_Task.DTOs.Account;
 using Jahez_Task.Models;
 using Jahez_Task.UnitOfWork;
+using Jahez_Task.UnitOfWorkFolder;
 using Microsoft.AspNetCore.Identity;
 using System;
 
@@ -12,10 +13,10 @@ namespace Jahez_Task.Services.AccountService
         private readonly UserManager<ApplicationUser> _userManager;
         private readonly RoleManager<IdentityRole<int>> _roleManager;
         private readonly SignInManager<ApplicationUser> signInManager;
-        private unitOfWork unitOfWork;
+        private IUnitOfWork unitOfWork;
         private readonly IMapper mapper;
 
-        public AccountService(SignInManager<ApplicationUser> _signinmanager , UserManager<ApplicationUser> userManager, RoleManager<IdentityRole<int>> roleManager , unitOfWork _unitofwork , IMapper mapper)
+        public AccountService(SignInManager<ApplicationUser> _signinmanager , UserManager<ApplicationUser> userManager, RoleManager<IdentityRole<int>> roleManager , IUnitOfWork _unitofwork , IMapper mapper)
         {
             _userManager = userManager;
             _roleManager = roleManager;

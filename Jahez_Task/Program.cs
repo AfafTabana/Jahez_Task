@@ -11,6 +11,7 @@ using Jahez_Task.Services.AccountService;
 using Jahez_Task.Services.BookService;
 using Jahez_Task.Services.NotificationService;
 using Jahez_Task.UnitOfWork;
+using Jahez_Task.UnitOfWorkFolder;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -36,6 +37,7 @@ namespace Jahez_Task
             builder.Services.AddScoped<IAccountService, AccountService>();
             builder.Services.AddScoped<INotificationReminderService, NotificationReminderService>();    
             builder.Services.AddScoped<INotificationRepository , NotificationRepository>();
+            builder.Services.AddScoped<IUnitOfWork, unitOfWork>();
             //AutoMapper registration 
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
