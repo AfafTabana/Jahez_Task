@@ -29,8 +29,4 @@
 		<ProjectReference Include="C:\Users\TABANA\source\repos\Jahez_Task\Jahez_Task\Jahez_Task.csproj" />
 		
 	</ItemGroup>
-
-	<ItemGroup>
-	  <Folder Include="Repository\" />
-	</ItemGroup>
 </Project>

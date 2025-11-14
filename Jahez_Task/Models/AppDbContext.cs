@@ -23,9 +23,15 @@ namespace Jahez_Task.Models
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
-            optionsBuilder.UseSqlServer().ConfigureWarnings(warnings =>
-                warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+            if (!optionsBuilder.IsConfigured)
+            {
+                optionsBuilder
+                    .UseSqlServer()
+                    .ConfigureWarnings(warnings =>
+                        warnings.Ignore(RelationalEventId.PendingModelChangesWarning));
+            }
         }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
