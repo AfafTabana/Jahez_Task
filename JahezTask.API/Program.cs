@@ -48,12 +48,10 @@ RecurringJob.AddOrUpdate<INotificationReminderService>(
 
 
 app.UseHttpsRedirection();
-app.UseAuthentication();
-
-app.UseAuthorization();
-
 
 app.UseRouting();
+
+app.UseAuthentication();
 
 app.UseAuthorization();
 
