@@ -1,8 +1,9 @@
-﻿using Jahez_Task.Enums;
-using Jahez_Task.Models;
-using Jahez_Task.Services.NotificationService;
-using Jahez_Task.UnitOfWork;
-using Jahez_Task.UnitOfWorkFolder;
+﻿
+using JahezTask.Application.Interfaces;
+using JahezTask.Application.Interfaces.Services;
+using JahezTask.Application.Services;
+using JahezTask.Domain.Entities;
+using JahezTask.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
 using System;

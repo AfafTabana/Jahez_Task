@@ -21,12 +21,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Using Include="Xunit" />
+    <ProjectReference Include="..\JahezTask.API\JahezTask.API.csproj" />
+    <ProjectReference Include="..\JahezTask.Application\JahezTask.Application.csproj" />
+    <ProjectReference Include="..\JahezTask.Domain\JahezTask.Domain.csproj" />
+    <ProjectReference Include="..\JahezTask.Infrastructure\JahezTask.Infrastructure.csproj" />
+    <ProjectReference Include="..\JahezTask.Persistence\JahezTask.Persistence.csproj" />
   </ItemGroup>
 
-	<ItemGroup>
-		<!-- Reference your main projects -->
-		<ProjectReference Include="C:\Users\TABANA\source\repos\Jahez_Task\Jahez_Task\Jahez_Task.csproj" />
-		
-	</ItemGroup>
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
 </Project>

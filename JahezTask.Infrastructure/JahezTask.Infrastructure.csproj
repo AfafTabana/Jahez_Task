@@ -1,0 +1,23 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <OutputType>Library</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Hangfire.AspNetCore" Version="1.8.22" />
+    <PackageReference Include="Hangfire.Core" Version="1.8.22" />
+    <PackageReference Include="Hangfire.SqlServer" Version="1.8.22" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.3.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\JahezTask.Application\JahezTask.Application.csproj" />
+    <ProjectReference Include="..\JahezTask.Persistence\JahezTask.Persistence.csproj" />
+  </ItemGroup>
+
+</Project>

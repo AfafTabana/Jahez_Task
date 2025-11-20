@@ -1,10 +1,10 @@
 ﻿using AutoMapper;
 using FluentAssertions;
-using Jahez_Task.DTOs.Account;
-using Jahez_Task.Models;
 using Jahez_Task.Services.AccountService;
-using Jahez_Task.UnitOfWork;
-using Jahez_Task.UnitOfWorkFolder;
+using JahezTask.Application.DTOs.Account;
+using JahezTask.Application.Interfaces;
+using JahezTask.Application.Interfaces.Services;
+using JahezTask.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 using NSubstitute;
 using System;

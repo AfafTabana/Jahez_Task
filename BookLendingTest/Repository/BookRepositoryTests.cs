@@ -1,7 +1,7 @@
 ﻿using FluentAssertions;
-using Jahez_Task.Models;
-using Jahez_Task.Repository.BookRepo;
-using Jahez_Task.Repository.GenericRepo;
+using JahezTask.Domain.Entities;
+using JahezTask.Persistence.Data;
+using JahezTask.Persistence.Repositories;
 using Microsoft.EntityFrameworkCore;
 using System;
 using System.Collections.Generic;
