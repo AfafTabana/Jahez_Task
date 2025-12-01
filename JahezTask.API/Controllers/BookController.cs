@@ -18,7 +18,7 @@ namespace JahezTask.API.Controllers
         {
             this.bookService = bookService;
         }
-        //[Authorize(Roles = "member")]
+        [Authorize(Roles = "member")]
         [HttpGet("DisplayBooksForMembers")]
         public async Task<IActionResult> GetAllBooksForMembers(CancellationToken cancellationToken)
         {
@@ -26,7 +26,7 @@ namespace JahezTask.API.Controllers
             IEnumerable<DisplayBookForMember> Books = await bookService.GetAll(cancellationToken);
             return Ok(Books);
         }
-        //[Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin")]
         [HttpGet("DisplayBooksForAdmin")]
 
         public async Task<IActionResult> GetAllBooksForAdmin(CancellationToken cancellationToken)
@@ -36,7 +36,7 @@ namespace JahezTask.API.Controllers
 
 
         }
-        //[Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin")]
         [HttpGet("GetById/{Id}")]
         public async Task<IActionResult> GetBookById(int Id , CancellationToken cancellationToken)
         {
@@ -44,7 +44,7 @@ namespace JahezTask.API.Controllers
             return Ok(Book);
 
         }
-        //[Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin")]
         [HttpPost("AddBook")]
 
         public async Task<IActionResult> AddBook(DisplayBookForAdmin book , CancellationToken cancellationToken)
@@ -52,7 +52,7 @@ namespace JahezTask.API.Controllers
             await bookService.AddBook(book , cancellationToken);
             return Ok("Book Added Succesfully");
         }
-        //[Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin")]
         [HttpPut("UpdateBook")]
 
         public async Task<IActionResult> UpdateBook(DisplayBookForAdmin book, int BookId , CancellationToken cancellationToken)
@@ -60,7 +60,7 @@ namespace JahezTask.API.Controllers
             await bookService.UpdateBook(book, BookId , cancellationToken);
             return Ok("Book Updated Succesfully");
         }
-        //[Authorize(Roles = "admin")]
+        [Authorize(Roles = "admin")]
         [HttpDelete("DeleteBook/{id}")]
 
         public async Task<IActionResult> DeleteBook(int id , CancellationToken cancellationToken)
@@ -68,7 +68,7 @@ namespace JahezTask.API.Controllers
             string Message = await bookService.DeleteBook(id , cancellationToken);
             return Ok(Message);
         }
-        //[Authorize(Roles = "member")]
+        [Authorize(Roles = "member")]
         [HttpGet("GetAvailableBook")]
         public async Task<IActionResult> GetAvailableBooks(CancellationToken cancellationToken)
         {

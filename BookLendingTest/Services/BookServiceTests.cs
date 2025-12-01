@@ -7,6 +7,7 @@ using JahezTask.Application.Interfaces;
 using JahezTask.Application.Interfaces.Services;
 using JahezTask.Domain.Entities;
 using JahezTask.Domain.Enums;
+using Microsoft.Extensions.Logging;
 using NSubstitute;
 using System;
 using System.Collections.Generic;
@@ -21,12 +22,16 @@ namespace BookLendingTest.Services
         private readonly IBookService _bookService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
+        private readonly ILogger<BookService> logger;
+        private readonly IUserContext userContext;
 
         public BookServiceTests()
         {
             _unitOfWork = Substitute.For<IUnitOfWork>();
             _mapper = Substitute.For<IMapper>();
-            _bookService = new BookService(_unitOfWork, _mapper);
+            logger = Substitute.For<ILogger<BookService>>();
+            userContext = Substitute.For<IUserContext>();
+            _bookService = new BookService(_unitOfWork, _mapper , logger , userContext);
         }
 
         #region GetById Tests
@@ -350,7 +355,7 @@ namespace BookLendingTest.Services
             _mapper.Map<BookLoan>(Arg.Any<AddBookLoanDTO>()).Returns(bookLoan);
 
             // Act
-            var result = await _bookService.BorrowBook(userId, displayBook);
+            var result = await _bookService.BorrowBook(displayBook);
 
             // Assert
             result.Loan.Should().NotBeNull();
@@ -369,7 +374,7 @@ namespace BookLendingTest.Services
             _unitOfWork.BookLoanRepository.CanBorrow(userId).Returns(false);
 
             // Act
-            var result = await _bookService.BorrowBook(userId, displayBook);
+            var result = await _bookService.BorrowBook(displayBook);
 
             // Assert
             result.Loan.Should().BeNull();
@@ -393,7 +398,7 @@ namespace BookLendingTest.Services
             _unitOfWork.BookRepository.GetBookByTitle(displayBook.Title).Returns(book);
 
             // Act
-            var result = await _bookService.BorrowBook(userId, displayBook);
+            var result = await _bookService.BorrowBook(displayBook);
 
             // Assert
             result.Loan.Should().BeNull();
@@ -427,7 +432,7 @@ namespace BookLendingTest.Services
             _unitOfWork.BookLoanRepository.GetBookLoanRecord(userId, book.Id).Returns(bookLoan);
 
             // Act
-            var result = await _bookService.ReturnBook(userId, displayBook);
+            var result = await _bookService.ReturnBook(displayBook);
 
             // Assert
             result.Loan.Should().NotBeNull();
@@ -464,7 +469,7 @@ namespace BookLendingTest.Services
             _unitOfWork.BookLoanRepository.GetBookLoanRecord(userId, book.Id).Returns(bookLoan);
 
             // Act
-            var result = await _bookService.ReturnBook(userId, displayBook);
+            var result = await _bookService.ReturnBook(displayBook);
 
             // Assert
             result.Loan.Should().BeNull();

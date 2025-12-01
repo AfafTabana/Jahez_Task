@@ -71,10 +71,10 @@ namespace BookLendingTest.Services
             _userManager.CreateAsync(Arg.Any<ApplicationUser>(), registerDTO.Password)
                 .Returns(IdentityResult.Success);
 
-            _roleManager.RoleExistsAsync("Member")
+            _roleManager.RoleExistsAsync("member")
                     .Returns(true);
 
-            _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), "Member")
+            _userManager.AddToRoleAsync(Arg.Any<ApplicationUser>(), "member")
                     .Returns(IdentityResult.Success);
 
             //Act 

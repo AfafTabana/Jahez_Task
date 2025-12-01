@@ -1,5 +1,6 @@
 ﻿using JahezTask.Application.DTOs.Book;
 using JahezTask.Application.Interfaces.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,7 +17,7 @@ namespace JahezTask.API.Controllers
             this.bookService = bookService;
         }
 
-        //[Authorize(Roles = "member")]
+        [Authorize(Roles = "member")]
         [HttpPost("BorrowBook")]
 
         public async Task<IActionResult> BorrowBook( [FromBody] DisplayBookForMember book , CancellationToken cancellationToken)
@@ -38,7 +39,7 @@ namespace JahezTask.API.Controllers
             }
 
         }
-        //[Authorize(Roles = "member")]
+        [Authorize(Roles = "member")]
         [HttpPost("ReturnBook")]
 
         public async Task<IActionResult> ReturnBook( DisplayBookForMember book , CancellationToken cancellationToken)

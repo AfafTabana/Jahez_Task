@@ -16,7 +16,7 @@ namespace JahezTask.Persistence.Repositories
         }
         public async Task<IEnumerable<BookLoan>> GetBookLoanByUserId(int userId , CancellationToken cancellationToken = default)
         {
-            List<BookLoan> AllUserLoan = await appDbContext.BookLoans.Where(c => c.UserId == userId).AsNoTracking().ToListAsync(cancellationToken);
+            IEnumerable<BookLoan> AllUserLoan = await appDbContext.BookLoans.Where(c => c.UserId == userId).AsNoTracking().ToListAsync(cancellationToken);
             return AllUserLoan;
 
         }
