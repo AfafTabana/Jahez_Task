@@ -9,10 +9,12 @@ namespace JahezTask.Persistence.Repositories
     {
 
         AppDbContext dbContext;
+        protected readonly DbSet<T> _dbSet;
         public GenericRepository(AppDbContext context) {
         
           dbContext = context;
-        
+          _dbSet = context.Set<T>();
+
         }
 
         public async Task<IEnumerable<T>> GetAllAsync() {
@@ -22,6 +24,12 @@ namespace JahezTask.Persistence.Repositories
             return Set;
         
         
+        }
+
+
+        public IQueryable<T> GetQueryable()
+        {
+            return _dbSet.AsQueryable();
         }
 
         public async Task<T> GetByIdAsync(int id)

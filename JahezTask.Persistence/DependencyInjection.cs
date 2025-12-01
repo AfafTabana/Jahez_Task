@@ -24,6 +24,8 @@ namespace JahezTask.Persistence
                 options.UseSqlServer(
                     configuration.GetConnectionString("DefaultConnection")));
 
+            // Register the seeder
+            services.AddScoped<DatabaseSeeder>();
 
             // Repositories
             services.AddScoped<IBookRepository, BookRepository>();

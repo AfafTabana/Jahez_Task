@@ -4,6 +4,9 @@ using JahezTask.Application.Interfaces.Services;
 using JahezTask.Domain.Entities;
 using JahezTask.Domain.Enums;
 using Microsoft.Extensions.Logging;
+using Microsoft.EntityFrameworkCore.SqlServer;
+using Microsoft.EntityFrameworkCore;
+
 
 namespace JahezTask.Application.Services
 {
@@ -21,27 +24,35 @@ namespace JahezTask.Application.Services
         }
         public async Task CheckDelayedBooks()
         {
-            IEnumerable<BookLoan> AllBookLoans = await UnitOfWork.BookLoanRepository.GetAllAsync();
-            foreach (var loan in AllBookLoans)
+            // Query only overdue loans directly from the database
+            var overdueLoans = await UnitOfWork.BookLoanRepository
+                .GetQueryable()
+                .Where(loan => loan.DueDate < DateTime.Now
+                              && loan.Status != (int)LoanStatus.Returned
+                              && loan.Status != (int)LoanStatus.Overdue) 
+                .ToListAsync();
+
+            foreach (var loan in overdueLoans)
             {
-                if (loan.DueDate < DateTime.Now && loan.Status != (int)LoanStatus.Returned)
-                {
-                    //log the reminder action
-                    string message = $"Reminder: Book with ID {loan.BookId} borrowed by User ID {loan.UserId} is overdue since {loan.DueDate.ToShortDateString()}.";
-                    Logger.LogInformation(message);
+                //log the reminder action
+                string message = $"Reminder: Book with ID {loan.BookId} borrowed by User ID {loan.UserId} is overdue since {loan.DueDate.ToShortDateString()}.";
+                Logger.LogInformation(message);
 
-                    //update loan status to overdue
-                    loan.Status = (int)LoanStatus.Overdue;
-                    UnitOfWork.BookLoanRepository.Update(loan);
-                    UnitOfWork.Save();
+                //update loan status to overdue
+                loan.Status = (int)LoanStatus.Overdue;
+                UnitOfWork.BookLoanRepository.Update(loan);
 
-                   //Add Notification Record
-                    AddNotificationRecord(loan.UserId, loan.Id, message);
-
-                }
+                //Add Notification Record
+                AddNotificationRecord(loan.UserId, loan.Id, message);
             }
 
+            if (overdueLoans.Any())
+            {
+                await UnitOfWork.SaveAsync();
+            }
         }
+
+        
 
         public void AddNotificationRecord(int userId, int BookId, string message )
         {

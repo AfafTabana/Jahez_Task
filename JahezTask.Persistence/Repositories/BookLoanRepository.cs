@@ -36,9 +36,9 @@ namespace JahezTask.Persistence.Repositories
             return true;
         }
 
-        public BookLoan GetBookLoanRecord(int userId, int BookId)
+        public BookLoan GetBookLoanRecord(int userId, int bookId)
         {
-            BookLoan BookLoanRecord = appDbContext.BookLoans.FirstOrDefault(c => c.UserId == userId && c.BookId == BookId);
+            BookLoan BookLoanRecord = appDbContext.BookLoans.FirstOrDefault(c => c.UserId == userId && c.BookId == bookId);
             return BookLoanRecord;
         }
     }

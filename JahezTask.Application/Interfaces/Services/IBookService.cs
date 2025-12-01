@@ -13,17 +13,17 @@ namespace JahezTask.Application.Interfaces.Services
 
         public void AddBook(DisplayBookForAdmin book);
 
-        public Task UpdateBook( DisplayBookForAdmin book, int BookId);
+        public Task UpdateBook( DisplayBookForAdmin book, int bookId);
 
-        public Task<string> DeleteBook( int Id);
+        public Task<string> DeleteBook( int id);
 
         public Task<List<DisplayBookForMember>> GetAvailableBooks();
 
-        public Task<(BookLoan Loan, string Message)> BorrowBook(int UserId , DisplayBookForMember Book);
+        public Task<(BookLoan Loan, string Message)> BorrowBook( DisplayBookForMember book);
 
-        public Task<(BookLoan Loan, string Message)> ReturnBook (int UserId, DisplayBookForMember Book);
+        public Task<(BookLoan Loan, string Message)> ReturnBook (DisplayBookForMember book);
 
-        public Task<BookLoan> AddBookLoan(int UserId , AddBookLoanDTO BookLoan); 
+        public Task<BookLoan> AddBookLoan(int userId , AddBookLoanDTO bookLoan); 
 
     }
 }

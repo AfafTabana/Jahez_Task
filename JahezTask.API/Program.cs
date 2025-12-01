@@ -3,8 +3,9 @@
 using Hangfire;
 using JahezTask.Application;
 using JahezTask.Application.Interfaces.Services;
-using JahezTask.Persistence;
 using JahezTask.Infrastructure;
+using JahezTask.Persistence;
+using JahezTask.Persistence.Data;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,6 +21,22 @@ builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 
 var app = builder.Build();
+
+// Seed the database
+using (var scope = app.Services.CreateScope())
+{
+    var services = scope.ServiceProvider;
+    try
+    {
+        var seeder = services.GetRequiredService<DatabaseSeeder>();
+        await seeder.SeedAsync();
+    }
+    catch (Exception ex)
+    {
+        var logger = services.GetRequiredService<ILogger<Program>>();
+        logger.LogError(ex, "An error occurred while seeding the database.");
+    }
+}
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

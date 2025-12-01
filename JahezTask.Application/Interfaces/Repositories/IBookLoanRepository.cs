@@ -8,6 +8,6 @@ namespace JahezTask.Application.Interfaces.Repositories
 
         public bool CanBorrow (int userId);
 
-        public BookLoan GetBookLoanRecord(int userId, int BookId);
+        public BookLoan GetBookLoanRecord(int userId, int bookId);
     }
 }
