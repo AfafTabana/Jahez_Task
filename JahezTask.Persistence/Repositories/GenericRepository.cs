@@ -17,9 +17,9 @@ namespace JahezTask.Persistence.Repositories
 
         }
 
-        public async Task<IEnumerable<T>> GetAllAsync() {
+        public async Task<IEnumerable<T>> GetAllAsync(CancellationToken cancellationToken = default) {
 
-            IEnumerable<T> Set =  await dbContext.Set<T>().ToListAsync();
+            IEnumerable<T> Set =  await dbContext.Set<T>().ToListAsync(cancellationToken);
 
             return Set;
         
@@ -32,9 +32,9 @@ namespace JahezTask.Persistence.Repositories
             return _dbSet.AsQueryable();
         }
 
-        public async Task<T> GetByIdAsync(int id)
+        public async Task<T> GetByIdAsync(int id , CancellationToken cancellationToken = default)
         {
-            T Item = await dbContext.Set<T>().FindAsync(id);
+            T Item = await dbContext.Set<T>().FindAsync(new object[] { id }, cancellationToken);
 
             return Item;
 
@@ -74,13 +74,15 @@ namespace JahezTask.Persistence.Repositories
 
         }
 
-        public async Task<bool> IsExist(int id) {
+        public async Task<bool> IsExist(int id , CancellationToken cancellationToken = default) {
 
-            var entity = await GetByIdAsync(id);
+            
+            var entity = await GetByIdAsync(id , cancellationToken);
 
             if (entity != null) {
                 return true; 
-            }else
+            }
+            else
             {
                 return false;
             }

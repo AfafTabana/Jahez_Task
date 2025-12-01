@@ -2,6 +2,7 @@
 using JahezTask.Domain.Entities;
 using JahezTask.Domain.Enums;
 using JahezTask.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace JahezTask.Persistence.Repositories
 {
@@ -13,16 +14,16 @@ namespace JahezTask.Persistence.Repositories
 
             appDbContext = context;
         }
-        public List<BookLoan> GetBookLoanByUserId(int userId)
+        public async Task<IEnumerable<BookLoan>> GetBookLoanByUserId(int userId , CancellationToken cancellationToken = default)
         {
-            List<BookLoan> AllUserLoan = appDbContext.BookLoans.Where(c => c.UserId == userId).ToList();
+            List<BookLoan> AllUserLoan = await appDbContext.BookLoans.Where(c => c.UserId == userId).AsNoTracking().ToListAsync(cancellationToken);
             return AllUserLoan;
 
         }
 
-        public bool CanBorrow(int userId)
+        public async Task<bool> CanBorrow(int userId , CancellationToken cancellationToken = default)
         {
-            List<BookLoan> AllUsserLoan = GetBookLoanByUserId(userId);
+            IEnumerable<BookLoan> AllUsserLoan = await GetBookLoanByUserId(userId , cancellationToken);
             foreach (var item in AllUsserLoan)
             {
 
@@ -36,9 +37,9 @@ namespace JahezTask.Persistence.Repositories
             return true;
         }
 
-        public BookLoan GetBookLoanRecord(int userId, int bookId)
+        public async Task<BookLoan> GetBookLoanRecord(int userId, int bookId , CancellationToken cancellationToken  = default)
         {
-            BookLoan BookLoanRecord = appDbContext.BookLoans.FirstOrDefault(c => c.UserId == userId && c.BookId == bookId);
+            BookLoan BookLoanRecord = await appDbContext.BookLoans.AsNoTracking().FirstOrDefaultAsync(c => c.UserId == userId && c.BookId == bookId, cancellationToken);
             return BookLoanRecord;
         }
     }

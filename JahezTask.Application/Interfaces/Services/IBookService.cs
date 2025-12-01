@@ -6,24 +6,24 @@ namespace JahezTask.Application.Interfaces.Services
 {
     public interface IBookService
     {
-        public Task<DisplayBookForMember> GetById(int id);
-        public Task<DisplayBookForAdmin> GetByIdForAdmin(int id);
-        public Task<IEnumerable<DisplayBookForMember>> GetAll();
-        public Task<IEnumerable<DisplayBookForAdmin>> GetAllBookForAdmin();
+        public Task<DisplayBookForMember> GetById(int id , CancellationToken cancellationToken = default);
+        public Task<DisplayBookForAdmin> GetByIdForAdmin(int id , CancellationToken cancellationToken = default);
+        public Task<IEnumerable<DisplayBookForMember>> GetAll(CancellationToken cancellationToken = default);
+        public Task<IEnumerable<DisplayBookForAdmin>> GetAllBookForAdmin(CancellationToken cancellationToken = default);
 
-        public void AddBook(DisplayBookForAdmin book);
+        public Task AddBook(DisplayBookForAdmin book , CancellationToken cancellationToken = default);
 
-        public Task UpdateBook( DisplayBookForAdmin book, int bookId);
+        public Task UpdateBook( DisplayBookForAdmin book, int bookId  , CancellationToken cancellationToken = default);
 
-        public Task<string> DeleteBook( int id);
+        public Task<string> DeleteBook( int id , CancellationToken cancellationToken = default);
 
-        public Task<List<DisplayBookForMember>> GetAvailableBooks();
+        public Task<List<DisplayBookForMember>> GetAvailableBooks(CancellationToken cancellationToken = default);
 
-        public Task<(BookLoan Loan, string Message)> BorrowBook( DisplayBookForMember book);
+        public Task<(BookLoan Loan, string Message)> BorrowBook( DisplayBookForMember book , CancellationToken cancellationToken = default);
 
-        public Task<(BookLoan Loan, string Message)> ReturnBook (DisplayBookForMember book);
+        public Task<(BookLoan Loan, string Message)> ReturnBook (DisplayBookForMember book , CancellationToken cancellationToken = default);
 
-        public Task<BookLoan> AddBookLoan(int userId , AddBookLoanDTO bookLoan); 
+        public Task<BookLoan> AddBookLoan(int userId , AddBookLoanDTO bookLoan , CancellationToken cancellationToken = default); 
 
     }
 }

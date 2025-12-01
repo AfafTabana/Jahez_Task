@@ -25,7 +25,7 @@ namespace Jahez_Task.Services.AccountService
             signInManager = _signinmanager;
         }
 
-        public async Task<(bool Success, string Message)> Register(RegisterDTO registerDTO)
+        public async Task<(bool Success, string Message)> Register(RegisterDTO registerDTO, CancellationToken cancellationToken = default)
         {
             if (await userManager.FindByEmailAsync(registerDTO.Email) != null)
                 return (false, "Email is already Exist.");
@@ -36,7 +36,7 @@ namespace Jahez_Task.Services.AccountService
                 UserName = registerDTO.UserName,
 
             };
-            var result = await userManager.CreateAsync(Member , registerDTO.Password);
+            var result = await userManager.CreateAsync(Member , registerDTO.Password );
 
             if( !result.Succeeded)
                 return (false, string.Join(", ", result.Errors.Select(e => e.Description)));
@@ -48,7 +48,7 @@ namespace Jahez_Task.Services.AccountService
 
         }
 
-        public async Task<(bool Success, string Message)> Login(LoginDTO loginDTO)
+        public async Task<(bool Success, string Message)> Login(LoginDTO loginDTO, CancellationToken cancellationToken = default)
         {
             var user = await userManager.FindByEmailAsync(loginDTO.Email);
             if (user == null)

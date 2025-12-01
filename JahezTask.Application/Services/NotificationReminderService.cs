@@ -6,55 +6,113 @@ using JahezTask.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.EntityFrameworkCore;
+using Hangfire;
+using Microsoft.Extensions.Hosting;
 
 
 namespace JahezTask.Application.Services
 {
     public class NotificationReminderService : INotificationReminderService
     {
-        private readonly IUnitOfWork UnitOfWork;
+        private readonly IUnitOfWork unitOfWork;
 
-        private readonly ILogger<NotificationReminderService> Logger;
+        private readonly ILogger<NotificationReminderService> logger;
+
+       
 
 
         public NotificationReminderService(IUnitOfWork unitOfWork , ILogger<NotificationReminderService> _logger)
         {
-            UnitOfWork = unitOfWork;
-            Logger = _logger;
+            this.unitOfWork = unitOfWork;
+            this.logger = _logger;
+            
         }
-        public async Task CheckDelayedBooks()
+        // Method called by Hangfire
+        public async Task CheckDelayedBooksForHangfireAsync(CancellationToken cancellationToken = default)
         {
-            // Query only overdue loans directly from the database
-            var overdueLoans = await UnitOfWork.BookLoanRepository
-                .GetQueryable()
-                .Where(loan => loan.DueDate < DateTime.Now
-                              && loan.Status != (int)LoanStatus.Returned
-                              && loan.Status != (int)LoanStatus.Overdue) 
-                .ToListAsync();
-
-            foreach (var loan in overdueLoans)
+            try
             {
-                //log the reminder action
-                string message = $"Reminder: Book with ID {loan.BookId} borrowed by User ID {loan.UserId} is overdue since {loan.DueDate.ToShortDateString()}.";
-                Logger.LogInformation(message);
+                // Create a linked token with timeout (e.g., 10 minutes max)
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
+                using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
+                    cancellationToken,
+                    timeoutCts.Token);
 
-                //update loan status to overdue
-                loan.Status = (int)LoanStatus.Overdue;
-                UnitOfWork.BookLoanRepository.Update(loan);
-
-                //Add Notification Record
-                AddNotificationRecord(loan.UserId, loan.Id, message);
+                await CheckDelayedBooks(linkedCts.Token);
             }
-
-            if (overdueLoans.Any())
+            catch (OperationCanceledException ex)
             {
-                await UnitOfWork.SaveAsync();
+                logger.LogWarning(ex, "Hangfire job was cancelled or timed out");
+                throw; // Re-throw so Hangfire can see job failed
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error in Hangfire job");
+                throw;
             }
         }
+        public async Task CheckDelayedBooks(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                logger.LogInformation("Starting overdue books check...");
+
+                // Query only overdue loans directly from the database WITH cancellation token
+                var overdueLoans = await unitOfWork.BookLoanRepository
+                    .GetQueryable()
+                    .Where(loan => loan.DueDate < DateTime.Now
+                                  && loan.Status != (int)LoanStatus.Returned
+                                  && loan.Status != (int)LoanStatus.Overdue)
+                    .ToListAsync(cancellationToken);  // ← PASS cancellationToken here
+
+                logger.LogInformation("Found {Count} overdue loans to process.", overdueLoans.Count);
+
+                if (!overdueLoans.Any())
+                {
+                    logger.LogInformation("No overdue loans found.");
+                    return;
+                }
+
+                
+                foreach (var loan in overdueLoans)
+                {
+                    // Check for cancellation periodically
+                    cancellationToken.ThrowIfCancellationRequested();
+
+                    // Log the reminder action
+                    string message = $"Reminder: Book with ID {loan.BookId} borrowed by User ID {loan.UserId} is overdue since {loan.DueDate:yyyy-MM-dd}.";
+                    logger.LogInformation(message);
+
+                    // Update loan status to overdue
+                    loan.Status = (int)LoanStatus.Overdue;
+                    unitOfWork.BookLoanRepository.Update(loan);
+
+                    // Add Notification Record ASYNC
+                    await AddNotificationRecord(loan.UserId, loan.Id, message, cancellationToken);
+
+                }
+
+                if (overdueLoans.Any())
+                {
+                    await unitOfWork.SaveAsync(cancellationToken);
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                logger.LogWarning("Overdue books check was cancelled.");
+                throw;
+            }
+            catch (Exception ex)
+            {
+                logger.LogError(ex, "Error checking delayed books");
+                throw;
+            }
+        }
+        
 
         
 
-        public void AddNotificationRecord(int userId, int BookId, string message )
+        public async Task AddNotificationRecord(int userId, int BookId, string message, CancellationToken cancellationToken = default)
         {
           OverDueNotification notification = new OverDueNotification()
             {
@@ -67,8 +125,8 @@ namespace JahezTask.Application.Services
                 SentAt = DateTime.Now
 
           };
-            UnitOfWork.NotificationRepository.Add(notification);
-            UnitOfWork.Save();
+            unitOfWork.NotificationRepository.Add(notification);
+          
         }
 
 

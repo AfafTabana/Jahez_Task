@@ -12,7 +12,7 @@ namespace JahezTask.Application.Interfaces
         Task CommitTransactionAsync();
         Task RollbackTransactionAsync();
         void Save();
-        Task SaveAsync();
+        Task SaveAsync(CancellationToken cancellationToken = default);
 
     }
 }

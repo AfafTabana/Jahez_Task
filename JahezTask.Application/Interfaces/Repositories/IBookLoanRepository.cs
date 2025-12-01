@@ -4,10 +4,10 @@ namespace JahezTask.Application.Interfaces.Repositories
 {
     public interface IBookLoanRepository  : IGenericRepository<BookLoan>
     {
-        public List<BookLoan> GetBookLoanByUserId (int userId);
+        public Task<IEnumerable<BookLoan>> GetBookLoanByUserId (int userId , CancellationToken cancellationToken = default);
 
-        public bool CanBorrow (int userId);
+        public Task<bool> CanBorrow (int userId , CancellationToken cancellationToken = default);
 
-        public BookLoan GetBookLoanRecord(int userId, int bookId);
+        public Task<BookLoan> GetBookLoanRecord(int userId, int bookId , CancellationToken cancellationToken = default);
     }
 }

@@ -19,7 +19,7 @@ namespace JahezTask.API.Controllers
         //[Authorize(Roles = "member")]
         [HttpPost("BorrowBook")]
 
-        public async Task<IActionResult> BorrowBook( [FromBody] DisplayBookForMember book)
+        public async Task<IActionResult> BorrowBook( [FromBody] DisplayBookForMember book , CancellationToken cancellationToken)
         {
 
             if (book == null)
@@ -27,7 +27,7 @@ namespace JahezTask.API.Controllers
 
             try
             {
-                var (Loan, message) = await bookService.BorrowBook(book);
+                var (Loan, message) = await bookService.BorrowBook(book , cancellationToken);
                 if (Loan == null)
                     return BadRequest(message);
                 return Ok(message);
@@ -41,14 +41,14 @@ namespace JahezTask.API.Controllers
         //[Authorize(Roles = "member")]
         [HttpPost("ReturnBook")]
 
-        public async Task<IActionResult> ReturnBook( DisplayBookForMember book)
+        public async Task<IActionResult> ReturnBook( DisplayBookForMember book , CancellationToken cancellationToken)
         {
             if (book == null)
                 return BadRequest("Book data is required.");
 
             try
             {
-                var (loan, message) = await bookService.ReturnBook(book);
+                var (loan, message) = await bookService.ReturnBook(book , cancellationToken);
                 if (loan == null)
                     return BadRequest(message);
                 return Ok(message);

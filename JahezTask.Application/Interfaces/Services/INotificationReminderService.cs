@@ -2,8 +2,9 @@
 {
     public interface INotificationReminderService
     {
-        Task CheckDelayedBooks();
+        Task CheckDelayedBooksForHangfireAsync(CancellationToken cancellationToken = default);
+        Task CheckDelayedBooks(CancellationToken cancellationToken = default);
 
-       void AddNotificationRecord (int userId ,int bookId, string message);
+       Task AddNotificationRecord (int userId ,int bookId, string message , CancellationToken cancellationToken = default);
     }
 }

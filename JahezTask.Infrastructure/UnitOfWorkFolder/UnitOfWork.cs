@@ -125,9 +125,9 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
             Context.SaveChanges();
         }
 
-        public async Task SaveAsync()
+        public async Task SaveAsync(CancellationToken cancellationToken = default)
         {
-            await Context.SaveChangesAsync();
+            await Context.SaveChangesAsync(cancellationToken);
         }
     }
 }

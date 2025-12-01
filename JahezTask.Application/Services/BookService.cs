@@ -29,48 +29,48 @@ namespace Jahez_Task.Services.BookService
             this.userContext = userContext;
         }
 
-        public async Task<DisplayBookForMember> GetById(int id)
+        public async Task<DisplayBookForMember> GetById(int id, CancellationToken cancellationToken = default)
         {
-            if (!await unitOfWork.BookRepository.IsExist(id))
+            if (!await unitOfWork.BookRepository.IsExist(id , cancellationToken))
             {
 
                 return null;
 
             }
 
-            var Book = await unitOfWork.BookRepository.GetByIdAsync(id);
+            var Book = await unitOfWork.BookRepository.GetByIdAsync(id , cancellationToken);
             DisplayBookForMember _Book = mapper.Map<DisplayBookForMember>(Book);
 
             return _Book;
 
         }
 
-        public async Task<DisplayBookForAdmin> GetByIdForAdmin(int id)
+        public async Task<DisplayBookForAdmin> GetByIdForAdmin(int id , CancellationToken cancellationToken = default)
         {
-            if (!await unitOfWork.BookRepository.IsExist(id))
+            if (!await unitOfWork.BookRepository.IsExist(id , cancellationToken))
             {
                 return null;
             }
 
-            var Book = await unitOfWork.BookRepository.GetByIdAsync(id);
+            var Book = await unitOfWork.BookRepository.GetByIdAsync(id , cancellationToken);
             DisplayBookForAdmin _book = mapper.Map<DisplayBookForAdmin>(Book);
 
             return _book;
         }
 
-        public async Task<IEnumerable<DisplayBookForMember>> GetAll()
+        public async Task<IEnumerable<DisplayBookForMember>> GetAll(CancellationToken cancellationToken = default)
         {
 
-            IEnumerable<Book> Books = await unitOfWork.BookRepository.GetAllAsync();
+            IEnumerable<Book> Books = await unitOfWork.BookRepository.GetAllAsync(cancellationToken);
             IEnumerable<DisplayBookForMember> _Books = mapper.Map<IEnumerable<DisplayBookForMember>>(Books);
 
             return _Books;
 
         }
 
-        public async Task<IEnumerable<DisplayBookForAdmin>> GetAllBookForAdmin()
+        public async Task<IEnumerable<DisplayBookForAdmin>> GetAllBookForAdmin(CancellationToken cancellationToken = default)
         {
-            IEnumerable<Book> Books = await unitOfWork.BookRepository.GetAllAsync();
+            IEnumerable<Book> Books = await unitOfWork.BookRepository.GetAllAsync(cancellationToken);
             IEnumerable<DisplayBookForAdmin> _Books = mapper.Map<IEnumerable<DisplayBookForAdmin>>(Books);
 
             return _Books;
@@ -78,42 +78,42 @@ namespace Jahez_Task.Services.BookService
 
         }
 
-        public void AddBook(DisplayBookForAdmin book)
+        public async Task AddBook(DisplayBookForAdmin book , CancellationToken cancellationToken = default)
         {
 
             if (book != null)
             {
                 Book Book = mapper.Map<Book>(book);
                 unitOfWork.BookRepository.Add(Book);
-                unitOfWork.Save();
+               await unitOfWork.SaveAsync(cancellationToken);
 
             }
 
 
         }
 
-        public async Task UpdateBook(DisplayBookForAdmin book , int bookId)
+        public async Task UpdateBook(DisplayBookForAdmin book , int bookId , CancellationToken cancellationToken = default)
         {
-            var existing = await unitOfWork.BookRepository.GetByIdAsync(bookId);
+            var existing = await unitOfWork.BookRepository.GetByIdAsync(bookId , cancellationToken);
 
             if (book != null && existing!= null)
             {
                 Book Book = mapper.Map<Book>(book);
                 Book.Id = bookId;
                 unitOfWork.BookRepository.Update(Book);
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(cancellationToken);
 
             }
 
         }
 
-        public async Task<string> DeleteBook(int id)
+        public async Task<string> DeleteBook(int id , CancellationToken cancellationToken = default)
         {
             string Message = "";
-            if (await unitOfWork.BookRepository.IsExist(id))
+            if (await unitOfWork.BookRepository.IsExist(id, cancellationToken))
             {
                 unitOfWork.BookRepository.Delete(id);
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(cancellationToken);
                 Message = "Book Deleted Successfully";
                 return Message;
             }else
@@ -126,9 +126,9 @@ namespace Jahez_Task.Services.BookService
 
         }
 
-        public async Task<List<DisplayBookForMember>> GetAvailableBooks()
+        public async Task<List<DisplayBookForMember>> GetAvailableBooks(CancellationToken cancellationToken = default)
         {
-            IEnumerable<Book> AllBooks = await unitOfWork.BookRepository.GetAllAsync();
+            IEnumerable<Book> AllBooks = await unitOfWork.BookRepository.GetAllAsync(cancellationToken);
             List<DisplayBookForMember> _AllBooks = new List<DisplayBookForMember>();
             foreach(Book book in AllBooks)
             {
@@ -142,7 +142,7 @@ namespace Jahez_Task.Services.BookService
             return _AllBooks;
         }
 
-        public async Task<(BookLoan Loan, string Message)> BorrowBook( DisplayBookForMember book)
+        public async Task<(BookLoan Loan, string Message)> BorrowBook( DisplayBookForMember book , CancellationToken cancellationToken = default)
         {
             if (book == null)
             {
@@ -167,7 +167,7 @@ namespace Jahez_Task.Services.BookService
             try
             {
                 // 1. Check if user can borrow
-                bool canBorrow = unitOfWork.BookLoanRepository.CanBorrow(userId);
+                bool canBorrow = await unitOfWork.BookLoanRepository.CanBorrow(userId , cancellationToken);
                 if (!canBorrow)
                 {
                     await unitOfWork.RollbackTransactionAsync();
@@ -175,7 +175,7 @@ namespace Jahez_Task.Services.BookService
                 }
 
                 // 2. Get and verify book availability
-                var borrowedBook = await unitOfWork.BookRepository.GetByIdAsync(book.Id);
+                var borrowedBook = await unitOfWork.BookRepository.GetByIdAsync(book.Id , cancellationToken);
                 if (borrowedBook == null)
                 {
                     await unitOfWork.RollbackTransactionAsync();
@@ -207,7 +207,7 @@ namespace Jahez_Task.Services.BookService
 
 
                 // 5. Save all changes atomically
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(cancellationToken);
 
                 // 6. Commit transaction
                 await unitOfWork.CommitTransactionAsync();
@@ -236,15 +236,15 @@ namespace Jahez_Task.Services.BookService
 
         }
 
-        public async Task<BookLoan> AddBookLoan(int userId, AddBookLoanDTO bookLoan)
+        public async Task<BookLoan> AddBookLoan(int userId, AddBookLoanDTO bookLoan , CancellationToken cancellationToken = default)
         {
             BookLoan BookLoanRecord = mapper.Map<BookLoan>(bookLoan);
             unitOfWork.BookLoanRepository.Add(BookLoanRecord);
-            await unitOfWork.SaveAsync();
+            await unitOfWork.SaveAsync(cancellationToken);
             return BookLoanRecord;
         }
 
-        public async Task<(BookLoan Loan, string Message)> ReturnBook(DisplayBookForMember book)
+        public async Task<(BookLoan Loan, string Message)> ReturnBook(DisplayBookForMember book , CancellationToken cancellationToken = default)
         {
             if (book == null)
             {
@@ -270,7 +270,7 @@ namespace Jahez_Task.Services.BookService
             try {
 
                 // 1. Get book
-                Book ReturnedBook = await unitOfWork.BookRepository.GetByIdAsync(book.Id);
+                Book ReturnedBook = await unitOfWork.BookRepository.GetByIdAsync(book.Id , cancellationToken);
 
 
            if (ReturnedBook == null)
@@ -279,7 +279,7 @@ namespace Jahez_Task.Services.BookService
                 return (null, "Book not found.");
             }
                 // 2. Get loan record
-                BookLoan ReturnedBookLoanRecord = unitOfWork.BookLoanRepository.GetBookLoanRecord(userId, ReturnedBook.Id);
+                BookLoan ReturnedBookLoanRecord = await unitOfWork.BookLoanRepository.GetBookLoanRecord(userId, ReturnedBook.Id , cancellationToken);
                 if (ReturnedBookLoanRecord == null)
                 {
                     await unitOfWork.RollbackTransactionAsync();
@@ -302,7 +302,7 @@ namespace Jahez_Task.Services.BookService
                 unitOfWork.BookLoanRepository.Update(ReturnedBookLoanRecord);
 
                 // 7. Save all changes atomically
-                await unitOfWork.SaveAsync();
+                await unitOfWork.SaveAsync(cancellationToken);
 
                 // 8. Commit transaction
                 await unitOfWork.CommitTransactionAsync();

@@ -1,5 +1,6 @@
 ﻿using Jahez_Task.Services.AccountService;
 using Jahez_Task.Services.BookService;
+using JahezTask.Application.Interfaces;
 using JahezTask.Application.Interfaces.Services;
 using JahezTask.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -24,6 +25,9 @@ namespace JahezTask.Application
 
             // AutoMapper
             services.AddAutoMapper(Assembly.GetExecutingAssembly());
+
+            //usercontext 
+            services.AddScoped<IUserContext, UserContext>();
 
             return services;
         }

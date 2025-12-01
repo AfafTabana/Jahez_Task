@@ -1,6 +1,7 @@
 ﻿using JahezTask.Application.Interfaces.Repositories;
 using JahezTask.Domain.Entities;
 using JahezTask.Persistence.Data;
+using Microsoft.EntityFrameworkCore;
 
 namespace JahezTask.Persistence.Repositories
 {
@@ -14,9 +15,9 @@ namespace JahezTask.Persistence.Repositories
         
         }
 
-        public Book GetBookByTitle(string title)
+        public async Task<Book> GetBookByTitle(string title , CancellationToken cancellationToken = default)
         {
-           Book book = appDbContext.Books.Where(c=> c.Title == title).FirstOrDefault();
+           Book book = await appDbContext.Books.AsNoTracking().Where(c=> c.Title == title).FirstOrDefaultAsync(cancellationToken);
            return book;
             
         }

@@ -6,6 +6,7 @@ using JahezTask.Application.Interfaces.Services;
 using JahezTask.Infrastructure;
 using JahezTask.Persistence;
 using JahezTask.Persistence.Data;
+using System.Threading;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -58,7 +59,7 @@ if (app.Environment.IsDevelopment())
 // Schedule recurring background job
 RecurringJob.AddOrUpdate<INotificationReminderService>(
     recurringJobId: "daily-delayed-books-check",
-    methodCall: service => service.CheckDelayedBooks(),
+    methodCall: service => service.CheckDelayedBooksForHangfireAsync(default),
     cronExpression: Cron.Daily,
     timeZone: TimeZoneInfo.Local
 );

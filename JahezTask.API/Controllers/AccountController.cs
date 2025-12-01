@@ -22,22 +22,22 @@ namespace JahezTask.API.Controllers
 
         [HttpPost("Register")]
 
-        public async Task<IActionResult> Register(RegisterDTO registerDTO)
+        public async Task<IActionResult> Register(RegisterDTO registerDTO, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var (Success , Message) = await accountService.Register(registerDTO);
+            var (Success , Message) = await accountService.Register(registerDTO , cancellationToken);
             if(!Success)
                 return BadRequest(new { Message });
             return Ok(new { Message });
         }
 
         [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginDTO loginDTO)
+        public async Task<IActionResult> Login(LoginDTO loginDTO , CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var (Success, Message) = await accountService.Login(loginDTO);
+            var (Success, Message) = await accountService.Login(loginDTO , cancellationToken);
             if (!Success)
                 return BadRequest(new { Message });
             return Ok(new { Message });
