@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace BookLendingTest.Services
@@ -22,16 +23,16 @@ namespace BookLendingTest.Services
         private readonly IBookService _bookService;
         private readonly IUnitOfWork _unitOfWork;
         private readonly IMapper _mapper;
-        private readonly ILogger<BookService> logger;
-        private readonly IUserContext userContext;
+        private readonly ILogger<BookService> _logger;
+        private readonly IUserContext _userContext;
 
         public BookServiceTests()
         {
             _unitOfWork = Substitute.For<IUnitOfWork>();
             _mapper = Substitute.For<IMapper>();
-            logger = Substitute.For<ILogger<BookService>>();
-            userContext = Substitute.For<IUserContext>();
-            _bookService = new BookService(_unitOfWork, _mapper , logger , userContext);
+            _logger = Substitute.For<ILogger<BookService>>();
+            _userContext = Substitute.For<IUserContext>();
+            _bookService = new BookService(_unitOfWork, _mapper, _logger, _userContext);
         }
 
         #region GetById Tests
@@ -56,16 +57,18 @@ namespace BookLendingTest.Services
                 Author = book.Author,
                 Description = book.Description
             };
-            _unitOfWork.BookRepository.IsExist(bookId).Returns(true);
-            _unitOfWork.BookRepository.GetByIdAsync(bookId).Returns(Task.FromResult(book));
+
+            _unitOfWork.BookRepository.IsExist(bookId, Arg.Any<CancellationToken>()).Returns(true);
+            _unitOfWork.BookRepository.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(book);
             _mapper.Map<DisplayBookForMember>(book).Returns(displayBook);
+
             // Act
             var result = await _bookService.GetById(bookId);
+
             // Assert
             Assert.NotNull(result);
             result.Title.Should().Be(book.Title);
             result.Author.Should().Be(book.Author);
-           
         }
 
         [Fact]
@@ -73,9 +76,11 @@ namespace BookLendingTest.Services
         {
             // Arrange
             int bookId = 1;
-            _unitOfWork.BookRepository.IsExist(bookId).Returns(false);
+            _unitOfWork.BookRepository.IsExist(bookId, Arg.Any<CancellationToken>()).Returns(false);
+
             // Act
             var result = await _bookService.GetById(bookId);
+
             // Assert
             Assert.Null(result);
         }
@@ -83,7 +88,7 @@ namespace BookLendingTest.Services
 
         #region GetByIdForAdmin Tests
         [Fact]
-        public async Task GetByIdForAdmin_BookExists_ReturnsDIsplayBook()
+        public async Task GetByIdForAdmin_BookExists_ReturnsDisplayBook()
         {
             // Arrange
             int bookId = 1;
@@ -96,20 +101,22 @@ namespace BookLendingTest.Services
                 Description = "Test Description",
                 IsAvailable = true
             };
-            var dIsplayBook = new DisplayBookForAdmin
+            var displayBook = new DisplayBookForAdmin
             {
                 Title = book.Title,
                 Author = book.Author,
-                Description = book.Description ,
-                IsAvailable= (bool) book.IsAvailable ,
-                ISBN= book.ISBN
-
+                Description = book.Description,
+                IsAvailable = (bool)book.IsAvailable,
+                ISBN = book.ISBN
             };
-            _unitOfWork.BookRepository.IsExist(bookId).Returns(true);
-            _unitOfWork.BookRepository.GetByIdAsync(bookId).Returns(Task.FromResult(book));
-            _mapper.Map<DisplayBookForAdmin>(book).Returns(dIsplayBook);
+
+            _unitOfWork.BookRepository.IsExist(bookId, Arg.Any<CancellationToken>()).Returns(true);
+            _unitOfWork.BookRepository.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(book);
+            _mapper.Map<DisplayBookForAdmin>(book).Returns(displayBook);
+
             // Act
             var result = await _bookService.GetByIdForAdmin(bookId);
+
             // Assert
             Assert.NotNull(result);
             result.Title.Should().Be(book.Title);
@@ -121,41 +128,43 @@ namespace BookLendingTest.Services
         {
             // Arrange
             int bookId = 1;
-            _unitOfWork.BookRepository.IsExist(bookId).Returns(false);
+            _unitOfWork.BookRepository.IsExist(bookId, Arg.Any<CancellationToken>()).Returns(false);
+
             // Act
             var result = await _bookService.GetByIdForAdmin(bookId);
+
             // Assert
             Assert.Null(result);
         }
-
         #endregion
 
-        #region GetAll
+        #region GetAll Tests
         [Fact]
-
         public async Task GetAll_ReturnsAllDisplayBooks()
         {
-            //Arrange 
+            // Arrange 
             var books = new List<Book>
             {
                 new Book { Id = 1, Title = "Book 1", Author = "Author 1", Description = "Description 1" },
                 new Book { Id = 2, Title = "Book 2", Author = "Author 2", Description = "Description 2" }
             };
-            _unitOfWork.BookRepository.GetAllAsync().Returns(Task.FromResult((IEnumerable<Book>)books));
+
+            _unitOfWork.BookRepository.GetAllAsync(Arg.Any<CancellationToken>()).Returns(books);
             var displayBooks = books.Select(b => new DisplayBookForMember
             {
                 Title = b.Title,
                 Author = b.Author,
                 Description = b.Description
             }).ToList();
+
             _mapper.Map<IEnumerable<DisplayBookForMember>>(books).Returns(displayBooks);
 
-            //Act
+            // Act
             var result = await _bookService.GetAll();
-            //Assert
+
+            // Assert
             Assert.NotNull(result);
             result.Count().Should().Be(books.Count);
-
         }
 
         [Fact]
@@ -163,7 +172,7 @@ namespace BookLendingTest.Services
         {
             // Arrange
             var emptyList = new List<Book>();
-            _unitOfWork.BookRepository.GetAllAsync().Returns(emptyList);
+            _unitOfWork.BookRepository.GetAllAsync(Arg.Any<CancellationToken>()).Returns(emptyList);
             _mapper.Map<IEnumerable<DisplayBookForMember>>(emptyList).Returns(new List<DisplayBookForMember>());
 
             // Act
@@ -176,7 +185,7 @@ namespace BookLendingTest.Services
 
         #region AddBook Tests
         [Fact]
-        public void AddBook_ValidDisplayBook_AddsBookToRepository()
+        public async Task AddBook_ValidDisplayBook_AddsBookToRepository()
         {
             // Arrange
             var displayBook = new DisplayBookForAdmin
@@ -187,6 +196,7 @@ namespace BookLendingTest.Services
                 ISBN = "0987654321",
                 IsAvailable = true
             };
+
             var book = new Book
             {
                 Title = displayBook.Title,
@@ -195,28 +205,31 @@ namespace BookLendingTest.Services
                 ISBN = displayBook.ISBN,
                 IsAvailable = displayBook.IsAvailable
             };
+
             _mapper.Map<Book>(displayBook).Returns(book);
+
             // Act
-            _bookService.AddBook(displayBook);
+            await _bookService.AddBook(displayBook);
+
             // Assert
-            _unitOfWork.BookRepository.Received(1).Add(Arg.Is<Book>(b =>
+             _unitOfWork.BookRepository.Received(1).Add(Arg.Is<Book>(b =>
                 b.Title == displayBook.Title &&
                 b.Author == displayBook.Author &&
                 b.Description == displayBook.Description &&
                 b.ISBN == displayBook.ISBN &&
                 b.IsAvailable == displayBook.IsAvailable
             ));
+            await _unitOfWork.Received(1).SaveAsync(Arg.Any<CancellationToken>());
         }
         #endregion
 
-        #region UpddateBook Tests
+        #region UpdateBook Tests
         [Fact]
         public async Task UpdateBook_WithValidBook_ShouldUpdateInRepository()
         {
             // Arrange
             int bookId = 1;
             var existingBook = new Book { Id = bookId, Title = "Old Title" };
-
             var displayBook = new DisplayBookForAdmin
             {
                 Title = "Updated Title",
@@ -224,7 +237,6 @@ namespace BookLendingTest.Services
                 ISBN = "2222222222",
                 IsAvailable = true
             };
-
             var updatedBook = new Book
             {
                 Id = bookId,
@@ -234,7 +246,7 @@ namespace BookLendingTest.Services
                 IsAvailable = displayBook.IsAvailable
             };
 
-            _unitOfWork.BookRepository.GetByIdAsync(bookId).Returns(existingBook);
+            _unitOfWork.BookRepository.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(existingBook);
             _mapper.Map<Book>(displayBook).Returns(updatedBook);
 
             // Act
@@ -243,7 +255,7 @@ namespace BookLendingTest.Services
             // Assert
             _unitOfWork.BookRepository.Received(1).Update(Arg.Is<Book>(b =>
                 b.Id == bookId && b.Title == displayBook.Title));
-            await _unitOfWork.Received(1).SaveAsync();
+            await _unitOfWork.Received(1).SaveAsync(Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -253,7 +265,7 @@ namespace BookLendingTest.Services
             int bookId = 999;
             var displayBook = new DisplayBookForAdmin { Title = "New Title" };
 
-            _unitOfWork.BookRepository.GetByIdAsync(bookId)
+            _unitOfWork.BookRepository.GetByIdAsync(bookId, Arg.Any<CancellationToken>())
                 .Returns(Task.FromResult<Book>(null));
 
             // Act
@@ -261,9 +273,8 @@ namespace BookLendingTest.Services
 
             // Assert
             _unitOfWork.BookRepository.DidNotReceive().Update(Arg.Any<Book>());
-            await _unitOfWork.DidNotReceive().SaveAsync();
+            await _unitOfWork.DidNotReceive().SaveAsync(Arg.Any<CancellationToken>());
         }
-
         #endregion
 
         #region DeleteBook Tests
@@ -272,7 +283,7 @@ namespace BookLendingTest.Services
         {
             // Arrange
             int bookId = 1;
-            _unitOfWork.BookRepository.IsExist(bookId).Returns(true);
+            _unitOfWork.BookRepository.IsExist(bookId, Arg.Any<CancellationToken>()).Returns(true);
 
             // Act
             var result = await _bookService.DeleteBook(bookId);
@@ -280,20 +291,23 @@ namespace BookLendingTest.Services
             // Assert
             result.Should().Be("Book Deleted Successfully");
             _unitOfWork.BookRepository.Received(1).Delete(bookId);
-            _unitOfWork.Received(1).Save();
+            await _unitOfWork.Received(1).SaveAsync(Arg.Any<CancellationToken>());
         }
+
         [Fact]
         public async Task DeleteBook_BookDoesNotExist_ReturnsNotFoundMessage()
         {
             // Arrange
             int bookId = 1;
-            _unitOfWork.BookRepository.IsExist(bookId).Returns(false);
+            _unitOfWork.BookRepository.IsExist(bookId, Arg.Any<CancellationToken>()).Returns(false);
+
             // Act
             var result = await _bookService.DeleteBook(bookId);
+
             // Assert
             result.Should().Be("Book Not Found");
             _unitOfWork.BookRepository.DidNotReceive().Delete(bookId);
-            _unitOfWork.DidNotReceive().Save();
+            await _unitOfWork.DidNotReceive().SaveAsync(Arg.Any<CancellationToken>());
         }
         #endregion
 
@@ -308,36 +322,41 @@ namespace BookLendingTest.Services
                 new Book { Id = 2, Title = "Book 2", IsAvailable = false },
                 new Book { Id = 3, Title = "Book 3", IsAvailable = true }
             };
-            _unitOfWork.BookRepository.GetAllAsync().Returns(Task.FromResult((IEnumerable<Book>)books));
-            var availableBooks = books.Where(b =>(bool) b.IsAvailable).Select(b => new DisplayBookForMember
-            {
-                Title = b.Title
-            }).ToList();
 
-            _mapper.Map<DisplayBookForMember>(Arg.Is<Book>(b => b.Id == 1))
-                .Returns(new DisplayBookForMember { Title = "Available Book" });
-            _mapper.Map<DisplayBookForMember>(Arg.Is<Book>(b => b.Id == 3))
-                .Returns(new DisplayBookForMember { Title = "Another Available" });
+            _unitOfWork.BookRepository.GetAllAsync(Arg.Any<CancellationToken>()).Returns(books);
+
+            var displayBook1 = new DisplayBookForMember { Title = "Available Book 1" };
+            var displayBook3 = new DisplayBookForMember { Title = "Available Book 3" };
+
+            _mapper.Map<DisplayBookForMember>(Arg.Is<Book>(b => b.Id == 1)).Returns(displayBook1);
+            _mapper.Map<DisplayBookForMember>(Arg.Is<Book>(b => b.Id == 3)).Returns(displayBook3);
+
             // Act
             var result = await _bookService.GetAvailableBooks();
+
             // Assert
             Assert.NotNull(result);
             result.Should().HaveCount(2);
-            result.All(b => b.Title == "Available Book" || b.Title == "Another Available").Should().BeTrue();
+            result.Select(b => b.Title).Should().Contain(new[] { "Available Book 1", "Available Book 3" });
         }
         #endregion
 
         #region BorrowBook Tests
-
         [Fact]
         public async Task BorrowBook_WhenUserCanBorrowAndBookAvailable_ShouldSucceed()
         {
             // Arrange
             int userId = 1;
-            var displayBook = new DisplayBookForMember { Title = "Borrowable Book" };
+            int bookId = 1;
+            var displayBook = new DisplayBookForMember
+            {
+                Id = bookId,  // Added Id property
+                Title = "Borrowable Book"
+            };
+
             var book = new Book
             {
-                Id = 1,
+                Id = bookId,
                 Title = displayBook.Title,
                 IsAvailable = true
             };
@@ -350,18 +369,20 @@ namespace BookLendingTest.Services
                 Status = (int)LoanStatus.Borrowed
             };
 
-            _unitOfWork.BookLoanRepository.CanBorrow(userId).Returns(true);
-            _unitOfWork.BookRepository.GetBookByTitle(displayBook.Title).Returns(book);
+            _userContext.GetCurrentUserId().Returns(userId.ToString());
+            _unitOfWork.BookLoanRepository.CanBorrow(userId, Arg.Any<CancellationToken>()).Returns(true);
+            _unitOfWork.BookRepository.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(book);
             _mapper.Map<BookLoan>(Arg.Any<AddBookLoanDTO>()).Returns(bookLoan);
 
             // Act
-            var result = await _bookService.BorrowBook(displayBook);
+            var result = await _bookService.BorrowBook(displayBook, CancellationToken.None);
 
             // Assert
             result.Loan.Should().NotBeNull();
             result.Message.Should().Be("Book has been borrowed successfully.");
             _unitOfWork.BookRepository.Received(1).Update(Arg.Is<Book>(b => (bool)!b.IsAvailable));
-            await _unitOfWork.Received(1).SaveAsync();
+            await _unitOfWork.Received(1).SaveAsync(Arg.Any<CancellationToken>());
+            await _unitOfWork.Received(1).CommitTransactionAsync(Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -369,16 +390,21 @@ namespace BookLendingTest.Services
         {
             // Arrange
             int userId = 1;
-            var displayBook = new DisplayBookForMember { Title = "Book" };
+            var displayBook = new DisplayBookForMember
+            {
+                Id = 1,  // Added Id property
+                Title = "Book"
+            };
 
-            _unitOfWork.BookLoanRepository.CanBorrow(userId).Returns(false);
+            _userContext.GetCurrentUserId().Returns(userId.ToString());
+            _unitOfWork.BookLoanRepository.CanBorrow(userId, Arg.Any<CancellationToken>()).Returns(false);
 
             // Act
-            var result = await _bookService.BorrowBook(displayBook);
+            var result = await _bookService.BorrowBook(displayBook, CancellationToken.None);
 
             // Assert
             result.Loan.Should().BeNull();
-            result.Message.Should().Be("Cannot borrow the book. You  have reached the borrowing limit ");
+            result.Message.Should().Be("Cannot borrow the book. You have reached the borrowing limit.");
         }
 
         [Fact]
@@ -386,23 +412,30 @@ namespace BookLendingTest.Services
         {
             // Arrange
             int userId = 1;
-            var displayBook = new DisplayBookForMember { Title = "Unavailable Book" };
+            int bookId = 1;
+            var displayBook = new DisplayBookForMember
+            {
+                Id = bookId,  // Added Id property
+                Title = "Unavailable Book"
+            };
+
             var book = new Book
             {
-                Id = 1,
+                Id = bookId,
                 Title = displayBook.Title,
                 IsAvailable = false
             };
 
-            _unitOfWork.BookLoanRepository.CanBorrow(userId).Returns(true);
-            _unitOfWork.BookRepository.GetBookByTitle(displayBook.Title).Returns(book);
+            _userContext.GetCurrentUserId().Returns(userId.ToString());
+            _unitOfWork.BookLoanRepository.CanBorrow(userId, Arg.Any<CancellationToken>()).Returns(true);
+            _unitOfWork.BookRepository.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(book);
 
             // Act
-            var result = await _bookService.BorrowBook(displayBook);
+            var result = await _bookService.BorrowBook(displayBook, CancellationToken.None);
 
             // Assert
             result.Loan.Should().BeNull();
-            result.Message.Should().Be("Cannot borrow the book , the book is not available.");
+            result.Message.Should().Be("Cannot borrow the book, the book is not available.");
         }
         #endregion
 
@@ -412,10 +445,16 @@ namespace BookLendingTest.Services
         {
             // Arrange
             int userId = 1;
-            var displayBook = new DisplayBookForMember { Title = "Returned Book" };
+            int bookId = 1;
+            var displayBook = new DisplayBookForMember
+            {
+                Id = bookId,  // Added Id property
+                Title = "Returned Book"
+            };
+
             var book = new Book
             {
-                Id = 1,
+                Id = bookId,
                 Title = displayBook.Title,
                 IsAvailable = false
             };
@@ -428,19 +467,19 @@ namespace BookLendingTest.Services
                 Status = (int)LoanStatus.Borrowed
             };
 
-            _unitOfWork.BookRepository.GetBookByTitle(displayBook.Title).Returns(book);
-            _unitOfWork.BookLoanRepository.GetBookLoanRecord(userId, book.Id).Returns(bookLoan);
+            _userContext.GetCurrentUserId().Returns(userId.ToString());
+            _unitOfWork.BookRepository.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(book);
+            _unitOfWork.BookLoanRepository.GetBookLoanRecord(userId, bookId, Arg.Any<CancellationToken>()).Returns(bookLoan);
 
             // Act
-            var result = await _bookService.ReturnBook(displayBook);
+            var result = await _bookService.ReturnBook(displayBook, CancellationToken.None);
 
             // Assert
             result.Loan.Should().NotBeNull();
-            result.Message.Should().Be("Book has been Returned successfully.");
+            result.Message.Should().Be("Book has been returned successfully.");
             result.Loan.Status.Should().Be((int)LoanStatus.Returned);
             result.Loan.ReturnDate.Should().NotBeNull();
-
-            _unitOfWork.BookRepository.Received(1).Update(Arg.Is<Book>(b => (bool) b.IsAvailable));
+            _unitOfWork.BookRepository.Received(1).Update(Arg.Is<Book>(b => (bool)b.IsAvailable));
         }
 
         [Fact]
@@ -448,10 +487,16 @@ namespace BookLendingTest.Services
         {
             // Arrange
             int userId = 1;
-            var displayBook = new DisplayBookForMember { Title = "Already Returned Book" };
+            int bookId = 1;
+            var displayBook = new DisplayBookForMember
+            {
+                Id = bookId,  // Added Id property
+                Title = "Already Returned Book"
+            };
+
             var book = new Book
             {
-                Id = 1,
+                Id = bookId,
                 Title = displayBook.Title,
                 IsAvailable = true
             };
@@ -465,17 +510,17 @@ namespace BookLendingTest.Services
                 ReturnDate = DateTime.Now.AddDays(-1)
             };
 
-            _unitOfWork.BookRepository.GetBookByTitle(displayBook.Title).Returns(book);
-            _unitOfWork.BookLoanRepository.GetBookLoanRecord(userId, book.Id).Returns(bookLoan);
+            _userContext.GetCurrentUserId().Returns(userId.ToString());
+            _unitOfWork.BookRepository.GetByIdAsync(bookId, Arg.Any<CancellationToken>()).Returns(book);
+            _unitOfWork.BookLoanRepository.GetBookLoanRecord(userId, bookId, Arg.Any<CancellationToken>()).Returns(bookLoan);
 
             // Act
-            var result = await _bookService.ReturnBook(displayBook);
+            var result = await _bookService.ReturnBook(displayBook, CancellationToken.None);
 
             // Assert
             result.Loan.Should().BeNull();
             result.Message.Should().Be("This book has already been returned.");
         }
         #endregion
-
     }
 }

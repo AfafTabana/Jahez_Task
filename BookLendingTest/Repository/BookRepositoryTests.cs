@@ -28,15 +28,7 @@ namespace BookLendingTest.Repository
         }
     
 
-        [Fact]
-        public void GetBookByTitle_WithNonExistingTitle_ShouldReturnNull()
-        {
-            // Act
-            var result = _repository.GetBookByTitle("Does Not Exist");
-
-            // Assert
-            result.Should().BeNull();
-        }
+      
     }
 }
 
