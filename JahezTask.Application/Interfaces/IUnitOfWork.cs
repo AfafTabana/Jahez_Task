@@ -8,8 +8,8 @@ namespace JahezTask.Application.Interfaces
         IBookLoanRepository BookLoanRepository { get; }
         INotificationRepository NotificationRepository { get; }
         // Transaction management
-        Task BeginTransactionAsync();
-        Task CommitTransactionAsync();
+        Task BeginTransactionAsync(CancellationToken cancellationToken = default);
+        Task CommitTransactionAsync(CancellationToken cancellationToken = default);
         Task RollbackTransactionAsync();
         void Save();
         Task SaveAsync(CancellationToken cancellationToken = default);

@@ -80,6 +80,7 @@ namespace Jahez_Task.Services.BookService
 
         public async Task AddBook(DisplayBookForAdmin book , CancellationToken cancellationToken = default)
         {
+            cancellationToken.ThrowIfCancellationRequested();
 
             if (book != null)
             {
@@ -162,7 +163,7 @@ namespace Jahez_Task.Services.BookService
             }
 
             // Begin transaction to ensure atomicity
-            await unitOfWork.BeginTransactionAsync();
+            await unitOfWork.BeginTransactionAsync(cancellationToken);
 
             try
             {
@@ -210,7 +211,7 @@ namespace Jahez_Task.Services.BookService
                 await unitOfWork.SaveAsync(cancellationToken);
 
                 // 6. Commit transaction
-                await unitOfWork.CommitTransactionAsync();
+                await unitOfWork.CommitTransactionAsync(cancellationToken);
 
                 logger.LogInformation(
                     "Book {BookId} successfully borrowed by user {UserId}. Loan ID: {LoanId}",
@@ -264,7 +265,7 @@ namespace Jahez_Task.Services.BookService
             }
 
             // Begin transaction to ensure atomicity
-            await unitOfWork.BeginTransactionAsync();
+            await unitOfWork.BeginTransactionAsync(cancellationToken);
 
            
             try {
@@ -305,7 +306,7 @@ namespace Jahez_Task.Services.BookService
                 await unitOfWork.SaveAsync(cancellationToken);
 
                 // 8. Commit transaction
-                await unitOfWork.CommitTransactionAsync();
+                await unitOfWork.CommitTransactionAsync(cancellationToken);
 
                 logger.LogInformation(
                     "Book {BookId} successfully returned by user {UserId}. Loan ID: {LoanId}",

@@ -9,7 +9,7 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
 {
     public class unitOfWork : IUnitOfWork
     {
-        private readonly AppDbContext Context;
+        private readonly AppDbContext context;
 
         private IBookRepository _BookRepository;
 
@@ -21,10 +21,10 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
 
         public unitOfWork( AppDbContext _context ) {
 
-            Context = _context;
-            _BookRepository = new BookRepository(Context);
-            _BookLoanRepository = new BookLoanRepository(Context);
-            notificationRepository = new NotificationRepository(Context);
+            context = _context;
+            _BookRepository = new BookRepository(context);
+            _BookLoanRepository = new BookLoanRepository(context);
+            notificationRepository = new NotificationRepository(context);
             
 
 
@@ -34,7 +34,7 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
                 
                 if (_BookRepository == null)
                 {
-                    _BookRepository = new BookRepository(Context);
+                    _BookRepository = new BookRepository(context);
                 }
                 
                 return _BookRepository; 
@@ -47,7 +47,7 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
             get { 
                 if (_BookLoanRepository == null)
                 {
-                    _BookLoanRepository = new BookLoanRepository(Context);
+                    _BookLoanRepository = new BookLoanRepository(context);
                 }
                 
                 
@@ -62,23 +62,23 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
             {
                 if (notificationRepository == null)
                 {
-                    notificationRepository = new NotificationRepository(Context);
+                    notificationRepository = new NotificationRepository(context);
                 }
                 return notificationRepository;
             }
         }
 
-        public async Task BeginTransactionAsync()
+        public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
         {
             if (_transaction != null)
             {
                 throw new InvalidOperationException("A transaction is already in progress.");
             }
 
-            _transaction = await Context.Database.BeginTransactionAsync();
+            _transaction = await context.Database.BeginTransactionAsync(cancellationToken);
         }
 
-        public async Task CommitTransactionAsync()
+        public async Task CommitTransactionAsync(CancellationToken cancellationToken =default)
         {
             if (_transaction == null)
             {
@@ -87,7 +87,8 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
 
             try
             {
-                await _transaction.CommitAsync();
+                await context.SaveChangesAsync(cancellationToken);
+                await _transaction.CommitAsync( cancellationToken);
             }
             catch
             {
@@ -96,7 +97,7 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
             }
             finally
             {
-                await _transaction.DisposeAsync();
+                _transaction.Dispose();
                 _transaction = null;
             }
         }
@@ -122,12 +123,12 @@ namespace JahezTask.Infrastructure.UnitOfWorkFolder
 
         public void Save()
         {
-            Context.SaveChanges();
+            context.SaveChanges();
         }
 
         public async Task SaveAsync(CancellationToken cancellationToken = default)
         {
-            await Context.SaveChangesAsync(cancellationToken);
+            await context.SaveChangesAsync(cancellationToken);
         }
     }
 }

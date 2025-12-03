@@ -27,7 +27,7 @@ namespace JahezTask.Application.Services
             this.logger = _logger;
             
         }
-        // Method called by Hangfire
+        
         public async Task CheckDelayedBooksForHangfireAsync(CancellationToken cancellationToken = default)
         {
             try
@@ -57,13 +57,12 @@ namespace JahezTask.Application.Services
             {
                 logger.LogInformation("Starting overdue books check...");
 
-                // Query only overdue loans directly from the database WITH cancellation token
                 var overdueLoans = await unitOfWork.BookLoanRepository
                     .GetQueryable()
                     .Where(loan => loan.DueDate < DateTime.Now
                                   && loan.Status != (int)LoanStatus.Returned
                                   && loan.Status != (int)LoanStatus.Overdue)
-                    .ToListAsync(cancellationToken);  // ← PASS cancellationToken here
+                    .ToListAsync(cancellationToken);  
 
                 logger.LogInformation("Found {Count} overdue loans to process.", overdueLoans.Count);
 
