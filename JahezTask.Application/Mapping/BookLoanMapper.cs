@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using JahezTask.Application.DTOs.BookLoan;
+using JahezTask.Application.DTOs.BookLoan.Commands.AddBook;
 using JahezTask.Domain.Entities;
 
 namespace JahezTask.Application.Mapping
@@ -8,7 +8,8 @@ namespace JahezTask.Application.Mapping
     {
         public BookLoanMapper() {
           
-          CreateMap<BookLoan , AddBookLoanDTO>().ReverseMap();
+          CreateMap<BookLoan , AddBookLoanCommand>().ReverseMap();
+
         }
     }
 }

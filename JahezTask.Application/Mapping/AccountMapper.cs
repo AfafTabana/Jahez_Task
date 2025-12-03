@@ -1,5 +1,5 @@
 ﻿using AutoMapper;
-using JahezTask.Application.DTOs.Account;
+using JahezTask.Application.Features.Account.Commands.Register;
 using JahezTask.Domain.Entities;
 
 namespace JahezTask.Application.Mapping
@@ -8,7 +8,7 @@ namespace JahezTask.Application.Mapping
     {
         public AccountMapper() { 
         
-            CreateMap<ApplicationUser , RegisterDTO>().ReverseMap();    
+            CreateMap<ApplicationUser , RegisterCommand>().ReverseMap();    
         }
     }
 }

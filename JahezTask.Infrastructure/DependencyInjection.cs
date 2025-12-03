@@ -1,7 +1,6 @@
 ﻿using JahezTask.Application.Interfaces;
 using JahezTask.Infrastructure.BackGroundJob;
 using JahezTask.Infrastructure.Identity;
-using JahezTask.Infrastructure.UnitOfWorkFolder;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using System;
@@ -25,8 +24,7 @@ namespace JahezTask.Infrastructure
             // Hangfire
             services.AddHangfireConfiguration(configuration);
 
-            // Unit of Work
-            services.AddScoped<IUnitOfWork, unitOfWork>();
+           
 
             return services;
         }

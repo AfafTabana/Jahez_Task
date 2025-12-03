@@ -1,109 +1,90 @@
-﻿using JahezTask.Application.Interfaces;
+﻿using FluentAssertions;
+using JahezTask.Application.Interfaces.Repositories;
 using JahezTask.Application.Interfaces.Services;
 using JahezTask.Application.Services;
 using JahezTask.Domain.Entities;
 using JahezTask.Domain.Enums;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using Microsoft.EntityFrameworkCore;
-using JahezTask.Application.Interfaces.Repositories;
 
 namespace BookLendingTest.Services
 {
     public class NotificationReminderServiceTests
     {
-        private readonly INotificationReminderService _notificationService;
-        private readonly IUnitOfWork _unitOfWork;
+        private readonly INotificationRepository _notificationRepository;
+        private readonly IBookLoanRepository _bookLoanRepository;
         private readonly ILogger<NotificationReminderService> _logger;
+        private readonly NotificationReminderService _notificationService;
 
         public NotificationReminderServiceTests()
         {
-            _unitOfWork = Substitute.For<IUnitOfWork>();
+            _notificationRepository = Substitute.For<INotificationRepository>();
+            _bookLoanRepository = Substitute.For<IBookLoanRepository>();
             _logger = Substitute.For<ILogger<NotificationReminderService>>();
-            _notificationService = new NotificationReminderService(_unitOfWork, _logger);
+
+            _notificationService = new NotificationReminderService(
+                _notificationRepository,
+                _logger,
+                _bookLoanRepository);
         }
 
         #region CheckDelayedBooks Tests
+
         [Fact]
         public async Task CheckDelayedBooks_WithOverdueLoans_ShouldUpdateStatusAndCreateNotifications()
         {
             // Arrange
             var overdueDate = DateTime.Now.AddDays(-5);
             var bookLoans = new List<BookLoan>
-    {
-        new BookLoan
-        {
-            Id = 1,
-            UserId = 1,
-            BookId = 10,
-            DueDate = overdueDate,
-            Status = (int)LoanStatus.Borrowed
-        },
-        new BookLoan
-        {
-            Id = 2,
-            UserId = 2,
-            BookId = 20,
-            DueDate = overdueDate,
-            Status = (int)LoanStatus.Borrowed
-        }
-    };
-
-           
-            var mockQueryable = bookLoans.ToAsyncQueryable();
+            {
+                new BookLoan
+                {
+                    Id = 1,
+                    UserId = 1,
+                    BookId = 10,
+                    DueDate = overdueDate,
+                    Status = (int)LoanStatus.Borrowed
+                },
+                new BookLoan
+                {
+                    Id = 2,
+                    UserId = 2,
+                    BookId = 20,
+                    DueDate = overdueDate,
+                    Status = (int)LoanStatus.Borrowed
+                }
+            };
 
             
-            var mockBookLoanRepository = Substitute.For<IBookLoanRepository>();
-            mockBookLoanRepository.GetQueryable().Returns(mockQueryable);
-            _unitOfWork.BookLoanRepository.Returns(mockBookLoanRepository);
+            _bookLoanRepository.GetQueryable()
+                .Returns(bookLoans.ToAsyncQueryable());
 
-            var mockNotificationRepository = Substitute.For<INotificationRepository>();
-            _unitOfWork.NotificationRepository.Returns(mockNotificationRepository);
+            _bookLoanRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
 
             // Act
             await _notificationService.CheckDelayedBooks();
 
-            // Assert
-          
-            _unitOfWork.BookLoanRepository.Received(2).Update(
+            // Assert - Verify both loans were updated to Overdue
+            _bookLoanRepository.Received(2).Update(
                 Arg.Is<BookLoan>(loan => loan.Status == (int)LoanStatus.Overdue));
 
-           
-            await _unitOfWork.Received(1).SaveAsync(Arg.Any<CancellationToken>());
+            // Verify SaveAsync was called on bookLoanRepository once (after all updates)
+            await _bookLoanRepository.Received(1).SaveAsync(Arg.Any<CancellationToken>());
 
-           
-            _unitOfWork.NotificationRepository.Received(2).Add(
-                Arg.Any<OverDueNotification>());
+            // Verify notifications were created
+            _notificationRepository.Received(2).Add(
+                Arg.Is<OverDueNotification>(n =>
+                    n.UserId > 0 &&
+                    n.BookLoanId > 0 &&
+                    n.NotificationType == (int)NotificationType.Log &&
+                    n.IsSent == true));
 
-            
-            // The service logs:
-            // 1. "Starting overdue books check..."
-            // 2. "Found 2 overdue loans to process."
-            // 3. "Reminder: Book with ID 10 borrowed by User ID 1 is overdue since..."
-            // 4. "Reminder: Book with ID 20 borrowed by User ID 2 is overdue since..."
-
-            //Check for at least 4 Information log calls
-            _logger.Received(4).Log(
-                LogLevel.Information,
-                Arg.Any<EventId>(),
-                Arg.Any<object>(),
-                Arg.Any<Exception>(),
-                Arg.Any<Func<object, Exception?, string>>()
-            );
-
-            // Check specifically for the reminder logs (2 of them)
-            _logger.Received(2).Log(
-                LogLevel.Information,
-                Arg.Any<EventId>(),
-                Arg.Is<object>(state => state.ToString().Contains("Reminder")),
-                Arg.Any<Exception>(),
-                Arg.Any<Func<object, Exception?, string>>()
-            );
+            // Verify SaveAsync was called on notificationRepository (once per notification = 2 times)
+            await _notificationRepository.Received(2).SaveAsync(Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -112,38 +93,36 @@ namespace BookLendingTest.Services
             // Arrange
             var futureDate = DateTime.Now.AddDays(5);
             var bookLoans = new List<BookLoan>
-    {
-        new BookLoan
-        {
-            Id = 1,
-            UserId = 1,
-            BookId = 10,
-            DueDate = futureDate, // Not overdue
-            Status = (int)LoanStatus.Borrowed
-        },
-        new BookLoan
-        {
-            Id = 2,
-            UserId = 2,
-            BookId = 20,
-            DueDate = futureDate, // Not overdue
-            Status = (int)LoanStatus.Returned 
-        }
-    };
+            {
+                new BookLoan
+                {
+                    Id = 1,
+                    UserId = 1,
+                    BookId = 10,
+                    DueDate = futureDate, // Not overdue
+                    Status = (int)LoanStatus.Borrowed
+                },
+                new BookLoan
+                {
+                    Id = 2,
+                    UserId = 2,
+                    BookId = 20,
+                    DueDate = futureDate, // Not overdue
+                    Status = (int)LoanStatus.Returned
+                }
+            };
 
-            
-            var mockQueryable = bookLoans.ToAsyncQueryable();
-            var mockBookLoanRepository = Substitute.For<IBookLoanRepository>();
-            mockBookLoanRepository.GetQueryable().Returns(mockQueryable);
-            _unitOfWork.BookLoanRepository.Returns(mockBookLoanRepository);
+            _bookLoanRepository.GetQueryable()
+                .Returns(bookLoans.ToAsyncQueryable());
 
             // Act
             await _notificationService.CheckDelayedBooks();
 
             // Assert
-            _unitOfWork.BookLoanRepository.DidNotReceive().Update(Arg.Any<BookLoan>());
-            _unitOfWork.NotificationRepository.DidNotReceive().Add(Arg.Any<OverDueNotification>());
-            await _unitOfWork.DidNotReceive().SaveAsync(Arg.Any<CancellationToken>());
+            _bookLoanRepository.DidNotReceive().Update(Arg.Any<BookLoan>());
+            _notificationRepository.DidNotReceive().Add(Arg.Any<OverDueNotification>());
+            await _bookLoanRepository.DidNotReceive().SaveAsync(Arg.Any<CancellationToken>());
+            await _notificationRepository.DidNotReceive().SaveAsync(Arg.Any<CancellationToken>());
         }
 
         [Fact]
@@ -152,29 +131,98 @@ namespace BookLendingTest.Services
             // Arrange
             var overdueDate = DateTime.Now.AddDays(-5);
             var bookLoans = new List<BookLoan>
-    {
-        new BookLoan
-        {
-            Id = 1,
-            UserId = 1,
-            BookId = 10,
-            DueDate = overdueDate,
-            Status = (int)LoanStatus.Overdue // Already marked as overdue
-        }
-    };
+            {
+                new BookLoan
+                {
+                    Id = 1,
+                    UserId = 1,
+                    BookId = 10,
+                    DueDate = overdueDate,
+                    Status = (int)LoanStatus.Overdue 
+                }
+            };
 
-           
-            var mockQueryable = bookLoans.ToAsyncQueryable();
-            var mockBookLoanRepository = Substitute.For<IBookLoanRepository>();
-            mockBookLoanRepository.GetQueryable().Returns(mockQueryable);
-            _unitOfWork.BookLoanRepository.Returns(mockBookLoanRepository);
+            _bookLoanRepository.GetQueryable()
+                .Returns(bookLoans.ToAsyncQueryable());
 
             // Act
             await _notificationService.CheckDelayedBooks();
 
             // Assert
-            _unitOfWork.BookLoanRepository.DidNotReceive().Update(Arg.Any<BookLoan>());
-            _unitOfWork.NotificationRepository.DidNotReceive().Add(Arg.Any<OverDueNotification>());
+            _bookLoanRepository.DidNotReceive().Update(Arg.Any<BookLoan>());
+            _notificationRepository.DidNotReceive().Add(Arg.Any<OverDueNotification>());
+        }
+
+        [Fact]
+        public async Task CheckDelayedBooks_WithEmptyList_ShouldNotThrowException()
+        {
+            // Arrange
+            var bookLoans = new List<BookLoan>();
+
+            _bookLoanRepository.GetQueryable()
+                .Returns(bookLoans.ToAsyncQueryable());
+
+            // Act
+            var act = async () => await _notificationService.CheckDelayedBooks();
+
+            // Assert
+            await act.Should().NotThrowAsync();
+            _bookLoanRepository.DidNotReceive().Update(Arg.Any<BookLoan>());
+        }
+
+        [Fact]
+        public async Task CheckDelayedBooks_ShouldOnlyProcessBorrowedStatus()
+        {
+            // Arrange
+            var overdueDate = DateTime.Now.AddDays(-5);
+            var bookLoans = new List<BookLoan>
+            {
+                new BookLoan
+                {
+                    Id = 1,
+                    UserId = 1,
+                    BookId = 10,
+                    DueDate = overdueDate,
+                    Status = (int)LoanStatus.Borrowed // Should be processed
+                },
+                new BookLoan
+                {
+                    Id = 2,
+                    UserId = 2,
+                    BookId = 20,
+                    DueDate = overdueDate,
+                    Status = (int)LoanStatus.Returned // Should NOT be processed
+                },
+                new BookLoan
+                {
+                    Id = 3,
+                    UserId = 3,
+                    BookId = 30,
+                    DueDate = overdueDate,
+                    Status = (int)LoanStatus.Overdue // Should NOT be processed
+                }
+            };
+
+            _bookLoanRepository.GetQueryable()
+                .Returns(bookLoans.ToAsyncQueryable());
+
+            _bookLoanRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _notificationService.CheckDelayedBooks();
+
+            // Assert - Only 1 loan should be updated (the Borrowed one)
+            _bookLoanRepository.Received(1).Update(
+                Arg.Is<BookLoan>(loan =>
+                    loan.Id == 1 &&
+                    loan.Status == (int)LoanStatus.Overdue));
+
+            _notificationRepository.Received(1).Add(Arg.Any<OverDueNotification>());
+            await _notificationRepository.Received(1).SaveAsync(Arg.Any<CancellationToken>());
         }
 
         #endregion
@@ -189,23 +237,48 @@ namespace BookLendingTest.Services
             int bookLoanId = 10;
             string message = "Test notification message";
 
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
             // Act
             await _notificationService.AddNotificationRecord(userId, bookLoanId, message);
 
             // Assert
-            _unitOfWork.NotificationRepository.Received(1).Add(
+            _notificationRepository.Received(1).Add(
                 Arg.Is<OverDueNotification>(n =>
                     n.UserId == userId &&
                     n.BookLoanId == bookLoanId &&
                     n.NotificationMessage == message &&
                     n.NotificationType == (int)NotificationType.Log &&
-                    n.IsSent == true &&
-                    n.SentAt != null &&
-                    n.NotificationDate != null));
+                    n.IsSent == true));
 
-         
-            _unitOfWork.DidNotReceive().Save();
-            await _unitOfWork.DidNotReceive().SaveAsync(Arg.Any<CancellationToken>());
+            await _notificationRepository.Received(1).SaveAsync(Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task AddNotificationRecord_ShouldSetCorrectTimestamps()
+        {
+            // Arrange
+            int userId = 1;
+            int bookLoanId = 10;
+            string message = "Test notification";
+            var beforeCall = DateTime.Now;
+
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _notificationService.AddNotificationRecord(userId, bookLoanId, message);
+
+            var afterCall = DateTime.Now;
+
+            // Assert
+            _notificationRepository.Received(1).Add(
+                Arg.Is<OverDueNotification>(n =>
+                    n.SentAt >= beforeCall &&
+                    n.SentAt <= afterCall &&
+                    n.NotificationDate >= beforeCall &&
+                    n.NotificationDate <= afterCall));
         }
 
         [Fact]
@@ -217,14 +290,61 @@ namespace BookLendingTest.Services
             string message = "Test notification message";
             var cancellationToken = new CancellationToken();
 
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
             // Act
             await _notificationService.AddNotificationRecord(userId, bookLoanId, message, cancellationToken);
 
             // Assert
-            _unitOfWork.NotificationRepository.Received(1).Add(
+            _notificationRepository.Received(1).Add(
                 Arg.Is<OverDueNotification>(n =>
                     n.UserId == userId &&
-                    n.BookLoanId == bookLoanId));
+                    n.BookLoanId == bookLoanId &&
+                    n.NotificationMessage == message));
+
+            await _notificationRepository.Received(1).SaveAsync(cancellationToken);
+        }
+
+        [Fact]
+        public async Task AddNotificationRecord_WithEmptyMessage_ShouldStillWork()
+        {
+            // Arrange
+            int userId = 1;
+            int bookLoanId = 10;
+            string message = "";
+
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _notificationService.AddNotificationRecord(userId, bookLoanId, message);
+
+            // Assert
+            _notificationRepository.Received(1).Add(
+                Arg.Is<OverDueNotification>(n =>
+                    n.UserId == userId &&
+                    n.BookLoanId == bookLoanId &&
+                    n.NotificationMessage == ""));
+        }
+
+        [Fact]
+        public async Task AddNotificationRecord_ShouldSetIsSentToTrue()
+        {
+            // Arrange
+            int userId = 5;
+            int bookLoanId = 50;
+            string message = "Overdue reminder";
+
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _notificationService.AddNotificationRecord(userId, bookLoanId, message);
+
+            // Assert
+            _notificationRepository.Received(1).Add(
+                Arg.Is<OverDueNotification>(n => n.IsSent == true));
         }
 
         #endregion
@@ -237,36 +357,99 @@ namespace BookLendingTest.Services
             // Arrange
             var overdueDate = DateTime.Now.AddDays(-5);
             var bookLoans = new List<BookLoan>
-    {
-        new BookLoan
-        {
-            Id = 1,
-            UserId = 1,
-            BookId = 10,
-            DueDate = overdueDate,
-            Status = (int)LoanStatus.Borrowed
-        }
-    };
+            {
+                new BookLoan
+                {
+                    Id = 1,
+                    UserId = 1,
+                    BookId = 10,
+                    DueDate = overdueDate,
+                    Status = (int)LoanStatus.Borrowed
+                }
+            };
 
-            
-            var mockQueryable = bookLoans.ToAsyncQueryable();
-            var mockBookLoanRepository = Substitute.For<IBookLoanRepository>();
-            mockBookLoanRepository.GetQueryable().Returns(mockQueryable);
-            _unitOfWork.BookLoanRepository.Returns(mockBookLoanRepository);
+            _bookLoanRepository.GetQueryable()
+                .Returns(bookLoans.ToAsyncQueryable());
 
-            var mockNotificationRepository = Substitute.For<INotificationRepository>();
-            _unitOfWork.NotificationRepository.Returns(mockNotificationRepository);
+            _bookLoanRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
 
             // Act
             await _notificationService.CheckDelayedBooksForHangfireAsync();
 
             // Assert
-           
-            _unitOfWork.BookLoanRepository.Received(1).Update(
+            _bookLoanRepository.Received(1).Update(
                 Arg.Is<BookLoan>(loan => loan.Status == (int)LoanStatus.Overdue));
-            await _unitOfWork.Received(1).SaveAsync(Arg.Any<CancellationToken>());
+
+            await _bookLoanRepository.Received(1).SaveAsync(Arg.Any<CancellationToken>());
+
+            _notificationRepository.Received(1).Add(Arg.Any<OverDueNotification>());
+            await _notificationRepository.Received(1).SaveAsync(Arg.Any<CancellationToken>());
+        }
+
+        [Fact]
+        public async Task CheckDelayedBooksForHangfireAsync_WithNoOverdueBooks_ShouldNotUpdateOrNotify()
+        {
+            // Arrange
+            var futureDate = DateTime.Now.AddDays(5);
+            var bookLoans = new List<BookLoan>
+            {
+                new BookLoan
+                {
+                    Id = 1,
+                    UserId = 1,
+                    BookId = 10,
+                    DueDate = futureDate,
+                    Status = (int)LoanStatus.Borrowed
+                }
+            };
+
+            _bookLoanRepository.GetQueryable()
+                .Returns(bookLoans.ToAsyncQueryable());
+
+            // Act
+            await _notificationService.CheckDelayedBooksForHangfireAsync();
+
+            // Assert
+            _bookLoanRepository.DidNotReceive().Update(Arg.Any<BookLoan>());
+            _notificationRepository.DidNotReceive().Add(Arg.Any<OverDueNotification>());
+        }
+
+        [Fact]
+        public async Task CheckDelayedBooksForHangfireAsync_ShouldHandleMultipleOverdueBooks()
+        {
+            // Arrange
+            var overdueDate = DateTime.Now.AddDays(-10);
+            var bookLoans = new List<BookLoan>
+            {
+                new BookLoan { Id = 1, UserId = 1, BookId = 10, DueDate = overdueDate, Status = (int)LoanStatus.Borrowed },
+                new BookLoan { Id = 2, UserId = 2, BookId = 20, DueDate = overdueDate, Status = (int)LoanStatus.Borrowed },
+                new BookLoan { Id = 3, UserId = 3, BookId = 30, DueDate = overdueDate, Status = (int)LoanStatus.Borrowed }
+            };
+
+            _bookLoanRepository.GetQueryable()
+                .Returns(bookLoans.ToAsyncQueryable());
+
+            _bookLoanRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            _notificationRepository.SaveAsync(Arg.Any<CancellationToken>())
+                .Returns(Task.CompletedTask);
+
+            // Act
+            await _notificationService.CheckDelayedBooksForHangfireAsync();
+
+            // Assert
+            _bookLoanRepository.Received(3).Update(Arg.Any<BookLoan>());
+            _notificationRepository.Received(3).Add(Arg.Any<OverDueNotification>());
+            await _bookLoanRepository.Received(1).SaveAsync(Arg.Any<CancellationToken>());
+            await _notificationRepository.Received(3).SaveAsync(Arg.Any<CancellationToken>());
         }
 
         #endregion
+
     }
 }

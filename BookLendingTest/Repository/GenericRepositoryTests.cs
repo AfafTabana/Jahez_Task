@@ -18,7 +18,7 @@ namespace BookLendingTest.Repository
 
         public GenericRepositoryTests()
         {
-            // Create unique in-memory database for each test instance
+           
             var options = new DbContextOptionsBuilder<AppDbContext>()
                 .UseInMemoryDatabase(databaseName: $"TestDb_{Guid.NewGuid()}")
                 .Options;

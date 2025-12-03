@@ -15,5 +15,12 @@
 
         Task<bool> IsExist(int id , CancellationToken cancellationToken = default);
 
+        Task BeginTransactionAsync(CancellationToken cancellationToken = default);
+        Task CommitTransactionAsync(CancellationToken cancellationToken = default);
+        Task RollbackTransactionAsync();
+
+        void Save();
+        Task SaveAsync(CancellationToken cancellationToken = default);
+
     }
 }

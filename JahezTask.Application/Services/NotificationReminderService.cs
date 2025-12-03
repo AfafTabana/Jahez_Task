@@ -8,31 +8,35 @@ using Microsoft.EntityFrameworkCore.SqlServer;
 using Microsoft.EntityFrameworkCore;
 using Hangfire;
 using Microsoft.Extensions.Hosting;
+using JahezTask.Application.Interfaces.Repositories;
 
 
 namespace JahezTask.Application.Services
 {
     public class NotificationReminderService : INotificationReminderService
     {
-        private readonly IUnitOfWork unitOfWork;
+        private readonly INotificationRepository notificationRepository;
+
+        private readonly IBookLoanRepository bookLoanRepository;
 
         private readonly ILogger<NotificationReminderService> logger;
 
        
 
 
-        public NotificationReminderService(IUnitOfWork unitOfWork , ILogger<NotificationReminderService> _logger)
+        public NotificationReminderService(INotificationRepository notificationRepository , ILogger<NotificationReminderService> _logger , IBookLoanRepository bookLoanRepository)
         {
-            this.unitOfWork = unitOfWork;
+            this.notificationRepository = notificationRepository;
             this.logger = _logger;
-            
+            this.bookLoanRepository = bookLoanRepository;
+
         }
         
         public async Task CheckDelayedBooksForHangfireAsync(CancellationToken cancellationToken = default)
         {
             try
             {
-                // Create a linked token with timeout (e.g., 10 minutes max)
+                
                 using var timeoutCts = new CancellationTokenSource(TimeSpan.FromMinutes(10));
                 using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(
                     cancellationToken,
@@ -43,7 +47,7 @@ namespace JahezTask.Application.Services
             catch (OperationCanceledException ex)
             {
                 logger.LogWarning(ex, "Hangfire job was cancelled or timed out");
-                throw; // Re-throw so Hangfire can see job failed
+                throw; 
             }
             catch (Exception ex)
             {
@@ -57,7 +61,7 @@ namespace JahezTask.Application.Services
             {
                 logger.LogInformation("Starting overdue books check...");
 
-                var overdueLoans = await unitOfWork.BookLoanRepository
+                var overdueLoans = await bookLoanRepository
                     .GetQueryable()
                     .Where(loan => loan.DueDate < DateTime.Now
                                   && loan.Status != (int)LoanStatus.Returned
@@ -84,7 +88,7 @@ namespace JahezTask.Application.Services
 
                     // Update loan status to overdue
                     loan.Status = (int)LoanStatus.Overdue;
-                    unitOfWork.BookLoanRepository.Update(loan);
+                    bookLoanRepository.Update(loan);
 
                     // Add Notification Record ASYNC
                     await AddNotificationRecord(loan.UserId, loan.Id, message, cancellationToken);
@@ -93,7 +97,7 @@ namespace JahezTask.Application.Services
 
                 if (overdueLoans.Any())
                 {
-                    await unitOfWork.SaveAsync(cancellationToken);
+                    await bookLoanRepository.SaveAsync(cancellationToken);
                 }
             }
             catch (OperationCanceledException)
@@ -124,8 +128,9 @@ namespace JahezTask.Application.Services
                 SentAt = DateTime.Now
 
           };
-            unitOfWork.NotificationRepository.Add(notification);
-          
+            notificationRepository.Add(notification);
+            await notificationRepository.SaveAsync(cancellationToken);
+
         }
 
 

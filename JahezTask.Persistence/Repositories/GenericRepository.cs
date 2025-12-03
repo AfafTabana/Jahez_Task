@@ -2,6 +2,7 @@
 using JahezTask.Persistence.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Internal;
+using Microsoft.EntityFrameworkCore.Storage;
 
 namespace JahezTask.Persistence.Repositories
 {
@@ -10,6 +11,7 @@ namespace JahezTask.Persistence.Repositories
 
         AppDbContext dbContext;
         protected readonly DbSet<T> _dbSet;
+        private IDbContextTransaction _transaction;
         public GenericRepository(AppDbContext context) {
         
           dbContext = context;
@@ -88,6 +90,69 @@ namespace JahezTask.Persistence.Repositories
             }
         
         }
+
+
+        public async Task BeginTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_transaction != null)
+            {
+                throw new InvalidOperationException("A transaction is already in progress.");
+            }
+
+            _transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
+        }
+
+        public async Task CommitTransactionAsync(CancellationToken cancellationToken = default)
+        {
+            if (_transaction == null)
+            {
+                throw new InvalidOperationException("No transaction in progress to commit.");
+            }
+
+            try
+            {
+                await dbContext.SaveChangesAsync(cancellationToken);
+                await _transaction.CommitAsync(cancellationToken);
+            }
+            catch
+            {
+                await RollbackTransactionAsync();
+                throw;
+            }
+            finally
+            {
+                _transaction.Dispose();
+                _transaction = null;
+            }
+        }
+
+        public async Task RollbackTransactionAsync()
+        {
+            if (_transaction == null)
+            {
+                throw new InvalidOperationException("No transaction in progress to rollback.");
+            }
+
+            try
+            {
+                await _transaction.RollbackAsync();
+            }
+            finally
+            {
+                await _transaction.DisposeAsync();
+                _transaction = null;
+            }
+        }
+        public void Save()
+        {
+            dbContext.SaveChanges();
+        }
+
+        public async Task SaveAsync(CancellationToken cancellationToken = default)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+        }
+
 
     }
 }

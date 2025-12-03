@@ -31,8 +31,9 @@ namespace JahezTask.Persistence
             services.AddScoped<IBookRepository, BookRepository>();
             services.AddScoped<IBookLoanRepository, BookLoanRepository>();
             services.AddScoped<INotificationRepository, NotificationRepository>();
-            
-           
+
+            services.AddScoped<AppDbContext>();
+
 
             return services;
         }

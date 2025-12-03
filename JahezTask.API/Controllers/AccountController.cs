@@ -1,7 +1,9 @@
 ﻿
-using Jahez_Task.Services.AccountService;
-using JahezTask.Application.DTOs.Account;
+
+using JahezTask.Application.Features.Account.Commands.Login;
+using JahezTask.Application.Features.Account.Commands.Register;
 using JahezTask.Application.Interfaces.Services;
+using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -13,31 +15,31 @@ namespace JahezTask.API.Controllers
     public class AccountController : ControllerBase
     {
 
-       private readonly IAccountService accountService;
+        private readonly IMediator mediator;
 
-       public AccountController(IAccountService accountService)
+        public AccountController(IMediator mediator)
         {
-            this.accountService = accountService;
+           this.mediator = mediator;
         }
 
         [HttpPost("Register")]
 
-        public async Task<IActionResult> Register(RegisterDTO registerDTO, CancellationToken cancellationToken)
+        public async Task<IActionResult> Register(RegisterCommand command, CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var (Success , Message) = await accountService.Register(registerDTO , cancellationToken);
+            var (Success , Message) = await mediator.Send(command , cancellationToken);
             if(!Success)
                 return BadRequest(new { Message });
             return Ok(new { Message });
         }
 
         [HttpPost("Login")]
-        public async Task<IActionResult> Login(LoginDTO loginDTO , CancellationToken cancellationToken)
+        public async Task<IActionResult> Login(LoginCommand command , CancellationToken cancellationToken)
         {
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
-            var (Success, Message) = await accountService.Login(loginDTO , cancellationToken);
+            var (Success, Message) = await mediator.Send(command , cancellationToken);
             if (!Success)
                 return BadRequest(new { Message });
             return Ok(new { Message });
